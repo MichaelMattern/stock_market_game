@@ -1,0 +1,9 @@
+# File: stock_market_game/requirements.txt
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+redis
+pydantic
+alembic
+numpy
