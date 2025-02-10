@@ -2,6 +2,11 @@
 
 This project simulates a stock market game built with FastAPI, Postgres, and Redis.
 
+# Dockerized Environment:
+
+The entire application is containerized using Docker and Docker Compose, with separate containers for the web application, PostgreSQL database, and Redis. 
+
+
 ## Features
 Market Data Simulation:
 
