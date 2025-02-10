@@ -8,7 +8,7 @@ class Account(Base):
     user_id = Column(Integer, unique=True, index=True)
     password = Column(String, nullable=False)
     cash = Column(Float, default=10000.0)
-    open_positions = Column(JSON, default={})  # e.g. {"HACK": 10, "AAPL": 5}
+    open_positions = Column(JSON, default={})  # e.g. {"HACK": 10}
     profit_loss = Column(Float, default=0.0)
 
 class Position(Base):
