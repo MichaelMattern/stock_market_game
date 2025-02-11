@@ -54,7 +54,7 @@ A dedicated endpoint retrieves the full historic trade data for a given ticker (
 Admin endpoints (e.g., account creation) are protected by an API key, ensuring that only authorized personnel can create new user accounts.
 Regular users have separate endpoints to view their account details and place orders.
 
-# Background Tasks & Real-Time Updates:**
+# Background Tasks & Real-Time Updates:
 
 Background tasks continuously run to update market data, orderbook data, trade simulation, and dynamic account updates.
 This ensures that the entire system (market data, order matching, account status) is kept current and consistent for all users.
