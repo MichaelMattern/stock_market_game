@@ -1,9 +1,13 @@
 # File: stock_market_game/app/main.py
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from app.api.endpoints import stocks, accounts, leaderboard, orderbook, orders, admin_accounts, trades
 from app.tasks.background_tasks import start_background_tasks
 
 app = FastAPI(title="Stock Market Game")
+
+# Mount the 'static' folder so /static/index.html is served
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 app.include_router(stocks.router, prefix="/stocks", tags=["Stocks"])
 app.include_router(accounts.router, prefix="/accounts", tags=["Accounts"])

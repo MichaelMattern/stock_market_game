@@ -52,4 +52,17 @@ class LeaderboardEntry(BaseModel):
     networth: float
 
     class Config:
-        from_attributes = True  # or use orm_mode = True for Pydantic v1
+        from_attributes = True
+
+class PendingOrderResponse(BaseModel):
+    order_id: str
+    user_id: int
+    symbol: str
+    side: str
+    quantity: float
+    order_type: str
+    limit_price: float = None
+    timestamp: int
+
+    class Config:
+        from_attributes = True

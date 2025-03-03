@@ -1,6 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
+from sqlalchemy.orm import Session
+from typing import List
 from app.services.order_matching import process_order
+from app.database import SessionLocal
+from app.models import PendingOrder
+from app.schemas import PendingOrderResponse
 
 router = APIRouter()
 
@@ -34,3 +39,25 @@ def place_order(order: OrderRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+# --- New code for retrieving pending limit orders ---
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@router.get("/pending", response_model=List[PendingOrderResponse])
+def get_pending_limit_orders(
+    user_id: int = Query(..., description="ID of the user to retrieve pending limit orders for"),
+    db: Session = Depends(get_db)
+):
+    orders = db.query(PendingOrder).filter(
+        PendingOrder.user_id == user_id,
+        PendingOrder.order_type == "limit"
+    ).all()
+    if not orders:
+        raise HTTPException(status_code=404, detail="No pending limit orders found for this user.")
+    return orders

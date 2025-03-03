@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Stock Market Game Frontend</title>
+  <style>
+    /* Overall page styling with dark background */
+    body { 
+      font-family: Arial, sans-serif; 
+      margin: 20px; 
+      background-color: #2c2c2c; /* Light black/dark grey background */
+      color: #e8f5e9; /* Light text for readability */
+    }
+    /* Navigation bar styling */
+    nav { 
+      margin-bottom: 20px; 
+      background-color: #424242; /* Darker grey for nav background */
+      padding: 10px;
+      border-radius: 5px;
+    }
+    nav button {
+      padding: 10px 15px;
+      margin-right: 5px;
+      background-color: #a5d6a7; /* Soft green */
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #1b5e20;
+      font-weight: bold;
+    }
+    nav button:hover {
+      background-color: #81c784;
+    }
+    /* Each section container styling */
+    .section { 
+      margin-bottom: 40px; 
+      padding: 20px; 
+      border: 2px solid #c8e6c9; /* Light green border */
+      border-radius: 8px;
+      background-color: #37474f; /* Dark container (light black tone) */
+      display: none; /* Hidden by default */
+    }
+    /* Flex container for side-by-side display */
+    .flex-container {
+      display: flex;
+      justify-content: space-between;
+      gap: 20px;
+    }
+    .flex-child {
+      flex: 1;
+    }
+    /* Form elements styling */
+    input, button, select { 
+      padding: 8px; 
+      margin: 4px; 
+      border: 1px solid #a5d6a7; 
+      border-radius: 4px;
+    }
+    /* Preformatted result area styling */
+    pre { 
+      background: #263238; /* Dark background for pre block */
+      padding: 10px; 
+      border: 1px solid #c8e6c9; 
+      border-radius: 4px; 
+      white-space: pre-wrap;
+      color: #e8f5e9;
+    }
+  </style>
+</head>
+<body>
+  <h1>Stock Market Game Frontend</h1>
+  
+  <!-- Navigation to switch between endpoint sections -->
+  <nav>
+    <button onclick="showSection('stocks-section')">Stocks</button>
+    <button onclick="showSection('create-account-section')">Create Account (Admin)</button>
+    <button onclick="showSection('get-account-section')">Get Account</button>
+    <button onclick="showSection('leaderboard-section')">Leaderboard</button>
+    <button onclick="showSection('orderbook-section')">Orderbook</button>
+    <button onclick="showSection('place-order-section')">Place Order</button>
+    <button onclick="showSection('trades-section')">Trade History</button>
+    <button onclick="showSection('admin-create-account-section')">Admin Create Account</button>
+  </nav>
+
+  <!-- Stocks Section -->
+  <div class="section" id="stocks-section">
+    <h2>Stocks</h2>
+    <button onclick="getStocks()">Get Stocks</button>
+    <pre id="stocks-result"></pre>
+  </div>
+
+  <!-- Create Account (Admin) Section -->
+  <div class="section" id="create-account-section">
+    <h2>Create User Account (Admin Only)</h2>
+    <label>User ID:</label>
+    <input type="number" id="create-account-userid" /><br>
+    <label>Password:</label>
+    <input type="text" id="create-account-password" /><br>
+    <label>Admin API Key:</label>
+    <input type="text" id="create-account-admin-key" value="my-secret-admin-key" /><br>
+    <button onclick="createAccount()">Create Account</button>
+    <pre id="create-account-result"></pre>
+  </div>
+
+  <!-- Get Account Details Section -->
+  <div class="section" id="get-account-section">
+    <h2>Get Account Details</h2>
+    <label>User ID:</label>
+    <input type="number" id="get-account-userid" /><br>
+    <button onclick="getAccount()">Get Account</button>
+    <pre id="get-account-result"></pre>
+  </div>
+
+  <!-- Leaderboard Section -->
+  <div class="section" id="leaderboard-section">
+    <h2>Leaderboard</h2>
+    <button onclick="getLeaderboard()">Get Leaderboard</button>
+    <pre id="leaderboard-result"></pre>
+  </div>
+
+  <!-- Orderbook Section -->
+  <div class="section" id="orderbook-section">
+    <h2>Orderbook</h2>
+    <label>Symbol:</label>
+    <input type="text" id="orderbook-symbol" value="HACK" /><br>
+    <button onclick="getOrderbook()">Get Orderbook</button>
+    <!-- Flex container to show buy and sell orders side by side -->
+    <div class="flex-container">
+      <div class="flex-child">
+        <h3>Buy Orders</h3>
+        <pre id="buy-orders-result"></pre>
+      </div>
+      <div class="flex-child">
+        <h3>Sell Orders</h3>
+        <pre id="sell-orders-result"></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Place Order Section -->
+  <div class="section" id="place-order-section">
+    <h2>Place Order</h2>
+    <label>User ID:</label>
+    <input type="number" id="order-userid" /><br>
+    <label>Symbol:</label>
+    <input type="text" id="order-symbol" value="HACK" /><br>
+    <label>Side (buy/sell):</label>
+    <input type="text" id="order-side" placeholder="buy or sell" /><br>
+    <label>Quantity:</label>
+    <input type="number" id="order-quantity" step="0.01" /><br>
+    <label>Order Type:</label>
+    <select id="order-type">
+      <option value="market">Market</option>
+      <option value="limit">Limit</option>
+    </select><br>
+    <label>Limit Price (if applicable):</label>
+    <input type="number" id="order-limit-price" step="0.01" /><br>
+    <button onclick="placeOrder()">Place Order</button>
+    <pre id="order-result"></pre>
+  </div>
+
+  <!-- Trades Section -->
+  <div class="section" id="trades-section">
+    <h2>Trade History</h2>
+    <label>Symbol:</label>
+    <input type="text" id="trades-symbol" value="HACK" /><br>
+    <button onclick="getTrades()">Get Trades</button>
+    <pre id="trades-result"></pre>
+  </div>
+
+  <!-- Admin Create Account Section -->
+  <div class="section" id="admin-create-account-section">
+    <h2>Create Admin Account</h2>
+    <label>User ID:</label>
+    <input type="number" id="admin-account-userid" /><br>
+    <label>Password:</label>
+    <input type="text" id="admin-account-password" /><br>
+    <label>Admin API Key:</label>
+    <input type="text" id="admin-account-admin-key" value="my-secret-admin-key" /><br>
+    <button onclick="createAdminAccount()">Create Admin Account</button>
+    <pre id="admin-account-result"></pre>
+  </div>
+
+  <script>
+    const BASE_URL = "http://localhost:8000";
+
+    // Function to hide all sections and show only the selected one
+    function showSection(sectionId) {
+      const sections = document.querySelectorAll('.section');
+      sections.forEach(section => {
+        section.style.display = 'none';
+      });
+      const activeSection = document.getElementById(sectionId);
+      if (activeSection) {
+        activeSection.style.display = 'block';
+      }
+    }
+    
+    // Display the first section by default (Stocks)
+    showSection('stocks-section');
+
+    // Stocks endpoint
+    async function getStocks() {
+      try {
+        const response = await fetch(`${BASE_URL}/stocks/`);
+        const data = await response.json();
+        document.getElementById("stocks-result").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById("stocks-result").textContent = error;
+      }
+    }
+
+    // Create account (Admin)
+    async function createAccount() {
+      const userId = document.getElementById("create-account-userid").value;
+      const password = document.getElementById("create-account-password").value;
+      const adminKey = document.getElementById("create-account-admin-key").value;
+      try {
+        const response = await fetch(`${BASE_URL}/accounts/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-api-key": adminKey
+          },
+          body: JSON.stringify({ user_id: parseInt(userId), password })
+        });
+        const data = await response.json();
+        document.getElementById("create-account-result").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById("create-account-result").textContent = error;
+      }
+    }
+
+    // Get account details
+    async function getAccount() {
+      const userId = document.getElementById("get-account-userid").value;
+      try {
+        const response = await fetch(`${BASE_URL}/accounts/${userId}`);
+        const data = await response.json();
+        document.getElementById("get-account-result").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById("get-account-result").textContent = error;
+      }
+    }
+
+    // Leaderboard endpoint
+    async function getLeaderboard() {
+      try {
+        const response = await fetch(`${BASE_URL}/leaderboard/`);
+        const data = await response.json();
+        document.getElementById("leaderboard-result").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById("leaderboard-result").textContent = error;
+      }
+    }
+
+    // Orderbook endpoint (updated to split buy and sell orders)
+    async function getOrderbook() {
+      const symbol = document.getElementById("orderbook-symbol").value;
+      try {
+        const response = await fetch(`${BASE_URL}/orderbook/?symbol=${symbol}`);
+        const data = await response.json();
+        // Update buy and sell orders in separate containers
+        document.getElementById("buy-orders-result").textContent = JSON.stringify(data.buy_orders, null, 2);
+        document.getElementById("sell-orders-result").textContent = JSON.stringify(data.sell_orders, null, 2);
+      } catch (error) {
+        document.getElementById("buy-orders-result").textContent = error;
+        document.getElementById("sell-orders-result").textContent = error;
+      }
+    }
+
+    // Place order endpoint
+    async function placeOrder() {
+      const userId = document.getElementById("order-userid").value;
+      const symbol = document.getElementById("order-symbol").value;
+      const side = document.getElementById("order-side").value;
+      const quantity = parseFloat(document.getElementById("order-quantity").value);
+      const orderType = document.getElementById("order-type").value;
+      const limitPrice = document.getElementById("order-limit-price").value;
+      
+      const payload = { user_id: parseInt(userId), symbol, side, quantity, order_type: orderType };
+      if (orderType === "limit" && limitPrice) {
+        payload.limit_price = parseFloat(limitPrice);
+      }
+      
+      try {
+        const response = await fetch(`${BASE_URL}/orders/`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await response.json();
+        document.getElementById("order-result").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById("order-result").textContent = error;
+      }
+    }
+
+    // Trades endpoint
+    async function getTrades() {
+      const symbol = document.getElementById("trades-symbol").value;
+      try {
+        const response = await fetch(`${BASE_URL}/trades/?symbol=${symbol}`);
+        const data = await response.json();
+        document.getElementById("trades-result").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById("trades-result").textContent = error;
+      }
+    }
+
+    // Create admin account endpoint
+    async function createAdminAccount() {
+      const userId = document.getElementById("admin-account-userid").value;
+      const password = document.getElementById("admin-account-password").value;
+      const adminKey = document.getElementById("admin-account-admin-key").value;
+      try {
+        const response = await fetch(`${BASE_URL}/admin/accounts/create`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-admin-api-key": adminKey
+          },
+          body: JSON.stringify({ user_id: parseInt(userId), password })
+        });
+        const data = await response.json();
+        document.getElementById("admin-account-result").textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        document.getElementById("admin-account-result").textContent = error;
+      }
+    }
+  </script>
+</body>
+</html>
