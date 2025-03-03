@@ -80,6 +80,7 @@
     <button onclick="showSection('place-order-section')">Place Order</button>
     <button onclick="showSection('trades-section')">Trade History</button>
     <button onclick="showSection('admin-create-account-section')">Admin Create Account</button>
+    <button onclick="showSection('cancel-order-section'); loadOpenOrders()">Cancel Orders</button>
   </nav>
 
   <!-- Stocks Section -->
@@ -124,7 +125,6 @@
     <label>Symbol:</label>
     <input type="text" id="orderbook-symbol" value="HACK" /><br>
     <button onclick="getOrderbook()">Get Orderbook</button>
-    <!-- Flex container to show buy and sell orders side by side -->
     <div class="flex-container">
       <div class="flex-child">
         <h3>Buy Orders</h3>
@@ -179,6 +179,20 @@
     <input type="text" id="admin-account-admin-key" value="my-secret-admin-key" /><br>
     <button onclick="createAdminAccount()">Create Admin Account</button>
     <pre id="admin-account-result"></pre>
+  </div>
+  
+  <!-- Cancel Orders Section -->
+  <div class="section" id="cancel-order-section">
+    <h2>Cancel Orders</h2>
+    <label>User ID:</label>
+    <input type="number" id="cancel-userid" value="1000" /><br>
+    <button onclick="loadOpenOrders()">Load Open Orders</button>
+    <pre id="open-orders-result"></pre>
+    <label>Order ID (for single cancel):</label>
+    <input type="text" id="cancel-orderid" placeholder="Enter Order ID" /><br>
+    <button onclick="cancelOrder()">Cancel Order</button>
+    <button onclick="cancelAllOrders()">Cancel All Orders</button>
+    <pre id="cancel-order-result"></pre>
   </div>
 
   <script>
@@ -254,13 +268,12 @@
       }
     }
 
-    // Orderbook endpoint (updated to split buy and sell orders)
+    // Orderbook endpoint
     async function getOrderbook() {
       const symbol = document.getElementById("orderbook-symbol").value;
       try {
         const response = await fetch(`${BASE_URL}/orderbook/?symbol=${symbol}`);
         const data = await response.json();
-        // Update buy and sell orders in separate containers
         document.getElementById("buy-orders-result").textContent = JSON.stringify(data.buy_orders, null, 2);
         document.getElementById("sell-orders-result").textContent = JSON.stringify(data.sell_orders, null, 2);
       } catch (error) {
@@ -326,6 +339,57 @@
         document.getElementById("admin-account-result").textContent = JSON.stringify(data, null, 2);
       } catch (error) {
         document.getElementById("admin-account-result").textContent = error;
+      }
+    }
+
+    // Cancel single order endpoint
+    async function cancelOrder() {
+      const userId = document.getElementById("cancel-userid").value;
+      const orderId = document.getElementById("cancel-orderid").value;
+      try {
+        const response = await fetch(`${BASE_URL}/orders/cancel?order_id=${orderId}&user_id=${userId}`, {
+          method: "DELETE"
+        });
+        const data = await response.json();
+        document.getElementById("cancel-order-result").textContent = JSON.stringify(data, null, 2);
+        // Refresh the open orders list after cancellation
+        loadOpenOrders();
+      } catch (error) {
+        document.getElementById("cancel-order-result").textContent = error;
+      }
+    }
+
+    // Cancel all orders endpoint: get all pending orders for the user and cancel them one by one
+    async function cancelAllOrders() {
+      const userId = document.getElementById("cancel-userid").value;
+      try {
+        const pendingResponse = await fetch(`${BASE_URL}/orders/pending?user_id=${userId}`);
+        const orders = await pendingResponse.json();
+        let messages = [];
+        for (const order of orders) {
+          const delResponse = await fetch(`${BASE_URL}/orders/cancel?order_id=${order.order_id}&user_id=${userId}`, {
+            method: "DELETE"
+          });
+          const delResult = await delResponse.json();
+          messages.push(delResult.message);
+        }
+        document.getElementById("cancel-order-result").textContent = messages.join("\n");
+        // Refresh the open orders list after cancellation
+        loadOpenOrders();
+      } catch (error) {
+        document.getElementById("cancel-order-result").textContent = error;
+      }
+    }
+
+    // Load all open orders for the user
+    async function loadOpenOrders() {
+      const userId = document.getElementById("cancel-userid").value;
+      try {
+        const response = await fetch(`${BASE_URL}/orders/pending?user_id=${userId}`);
+        const orders = await response.json();
+        document.getElementById("open-orders-result").textContent = JSON.stringify(orders, null, 2);
+      } catch (error) {
+        document.getElementById("open-orders-result").textContent = error;
       }
     }
   </script>
