@@ -8,7 +8,7 @@ from app.dependencies import verify_admin
 
 router = APIRouter()
 
-@router.post("/create", response_model=AccountData, dependencies=[Depends(verify_admin)])
+@router.post("/create", include_in_schema=False, response_model=AccountData, dependencies=[Depends(verify_admin)])
 def create_account_admin(account: AccountCreate):
     """
     Admin endpoint to create a new user account.

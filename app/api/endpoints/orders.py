@@ -1,9 +1,9 @@
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.services.order_matching import process_order
-from app.database import SessionLocal
+from app.dependencies import get_db, verify_user
 from app.models import PendingOrder
 from app.schemas import PendingOrderResponse
 
@@ -26,7 +26,13 @@ class OrderResponse(BaseModel):
     message: str = None
 
 @router.post("/", response_model=OrderResponse)
-def place_order(order: OrderRequest):
+def place_order(order: OrderRequest, current_user = Depends(verify_user)):
+    # Ensure the authenticated user's user_id matches the order's user_id.
+    if current_user.user_id != order.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, 
+            detail="Not authorized to place order for this account"
+        )
     try:
         result = process_order(order.dict())
         return OrderResponse(
@@ -40,20 +46,18 @@ def place_order(order: OrderRequest):
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-# --- New code for retrieving pending limit orders ---
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
 @router.get("/pending", response_model=List[PendingOrderResponse])
 def get_pending_limit_orders(
     user_id: int = Query(..., description="ID of the user to retrieve pending limit orders for"),
+    current_user = Depends(verify_user),
     db: Session = Depends(get_db)
 ):
+    # Ensure that the authenticated user matches the requested user_id.
+    if current_user.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to view pending orders for this account"
+        )
     orders = db.query(PendingOrder).filter(
         PendingOrder.user_id == user_id,
         PendingOrder.order_type == "limit"
@@ -62,13 +66,19 @@ def get_pending_limit_orders(
         raise HTTPException(status_code=404, detail="No pending limit orders found for this user.")
     return orders
 
-
 @router.delete("/cancel", status_code=200)
 def cancel_limit_order(
     order_id: str = Query(..., description="ID of the pending limit order to cancel"),
     user_id: int = Query(..., description="ID of the user canceling the order"),
+    current_user = Depends(verify_user),
     db: Session = Depends(get_db)
 ):
+    # Ensure that the authenticated user matches the provided user_id.
+    if current_user.user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not authorized to cancel orders for this account"
+        )
     # Retrieve the pending order and ensure it belongs to the user.
     order = db.query(PendingOrder).filter(
         PendingOrder.order_id == order_id,
