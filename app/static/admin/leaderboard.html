@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaderboard - Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin-styles.css">
+    <style>
+        .medal {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            line-height: 30px;
+            text-align: center;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .medal-gold {
+            background-color: #ffd700;
+        }
+        
+        .medal-silver {
+            background-color: #c0c0c0;
+        }
+        
+        .medal-bronze {
+            background-color: #cd7f32;
+        }
+        
+        .medal-rank {
+            background-color: #e0e0e0;
+            color: #333;
+        }
+        
+        .profit {
+            color: #4caf50;
+        }
+        
+        .loss {
+            color: #f44336;
+        }
+        
+        .leaderboard-table tr:nth-child(1) td {
+            background-color: rgba(255, 215, 0, 0.1);
+        }
+        
+        .leaderboard-table tr:nth-child(2) td {
+            background-color: rgba(192, 192, 192, 0.1);
+        }
+        
+        .leaderboard-table tr:nth-child(3) td {
+            background-color: rgba(205, 127, 50, 0.1);
+        }
+        
+        .user-detail-row {
+            background-color: #f9f9f9 !important;
+            display: none;
+        }
+        
+        .user-detail-content {
+            padding: 20px;
+        }
+        
+        .position-list {
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <div class="admin-sidebar">
+            <div class="admin-logo">Market Admin</div>
+            <ul class="admin-sidebar-nav">
+                <li><a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+                <li><a href="users.html"><i class="fas fa-users"></i> <span>User Management</span></a></li>
+                <li><a href="trades.html"><i class="fas fa-exchange-alt"></i> <span>Trade History</span></a></li>
+                <li><a href="orders.html"><i class="fas fa-clipboard-list"></i> <span>Orders</span></a></li>
+                <li><a href="leaderboard.html" class="active"><i class="fas fa-trophy"></i> <span>Leaderboard</span></a></li>
+                <li><a href="system.html"><i class="fas fa-cogs"></i> <span>System</span></a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="admin-main">
+            <!-- Header -->
+            <div class="admin-header">
+                <h1 class="admin-title">Leaderboard</h1>
+                <div class="admin-user-info">
+                    <span id="admin-name">Admin</span>
+                    <button id="logout-button" class="admin-button admin-button-warn">Logout</button>
+                </div>
+            </div>
+            
+            <!-- Leaderboard Stats -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Leaderboard Statistics</h2>
+                    <button id="refresh-leaderboard" class="admin-button admin-button-primary">Refresh Data</button>
+                </div>
+                <div class="admin-stats">
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Total Users</h3>
+                        <div class="admin-stat-value" id="total-users">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Average Net Worth</h3>
+                        <div class="admin-stat-value" id="avg-networth">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Highest Net Worth</h3>
+                        <div class="admin-stat-value" id="highest-networth">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Total P/L</h3>
+                        <div class="admin-stat-value" id="total-pl">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Leaderboard Table -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">User Rankings</h2>
+                    <div>
+                        <label class="admin-label">
+                            <input type="checkbox" id="toggle-details" class="admin-checkbox"> Show Details
+                        </label>
+                    </div>
+                </div>
+                
+                <table class="admin-table leaderboard-table" id="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th width="70">Rank</th>
+                            <th>User ID</th>
+                            <th>Cash</th>
+                            <th>P/L</th>
+                            <th>Market Value</th>
+                            <th>Net Worth</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-data">
+                        <tr>
+                            <td colspan="7" style="text-align: center;">Loading leaderboard data...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script src="admin-scripts.js"></script>
+    <script>
+        // Variables
+        let leaderboardData = [];
+        let showDetails = false;
+        
+        // DOM Elements
+        const leaderboardTable = document.getElementById('leaderboard-table');
+        const leaderboardBody = document.getElementById('leaderboard-data');
+        const toggleDetailsCheckbox = document.getElementById('toggle-details');
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set admin name
+            const adminId = localStorage.getItem('adminId');
+            if (adminId) {
+                document.getElementById('admin-name').textContent = `Admin ${adminId}`;
+            }
+            
+            // Load leaderboard data
+            loadLeaderboard();
+            
+            // Add event listeners
+            document.getElementById('refresh-leaderboard').addEventListener('click', loadLeaderboard);
+            toggleDetailsCheckbox.addEventListener('change', toggleUserDetails);
+        });
+        
+        // Load leaderboard data
+        async function loadLeaderboard() {
+            try {
+                // Show loading state
+                leaderboardBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading leaderboard data...</td></tr>';
+                
+                // Fetch leaderboard data
+                const data = await fetchWithAuth('/leaderboard/');
+                
+                // Store data
+                leaderboardData = data;
+                
+                // Display leaderboard
+                displayLeaderboard();
+                
+                // Update statistics
+                updateLeaderboardStats(data);
+            } catch (error) {
+                console.error('Error loading leaderboard:', error);
+                leaderboardBody.innerHTML = `<tr><td colspan="7" style="text-align: center;">Error loading leaderboard: ${error.message}</td></tr>`;
+                showNotification('Error loading leaderboard', 'error');
+            }
+        }
+        
+        // Display leaderboard data
+        function displayLeaderboard() {
+            // Clear table body
+            leaderboardBody.innerHTML = '';
+            
+            if (leaderboardData.length === 0) {
+                leaderboardBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">No leaderboard data available</td></tr>';
+                return;
+            }
+            
+            // Sort by networth descending
+            leaderboardData.sort((a, b) => b.networth - a.networth);
+            
+            // Create table rows
+            leaderboardData.forEach((user, index) => {
+                const rank = index + 1;
+                const row = document.createElement('tr');
+                row.dataset.userId = user.user_id;
+                
+                // Profit/loss styling
+                const plClass = user.profit_loss >= 0 ? 'profit' : 'loss';
+                
+                // Market value calculation
+                const marketValue = user.networth - user.cash;
+                
+                // Rank medal or number
+                let rankDisplay;
+                if (rank === 1) {
+                    rankDisplay = `<div class="medal medal-gold">1</div>`;
+                } else if (rank === 2) {
+                    rankDisplay = `<div class="medal medal-silver">2</div>`;
+                } else if (rank === 3) {
+                    rankDisplay = `<div class="medal medal-bronze">3</div>`;
+                } else {
+                    rankDisplay = `<div class="medal medal-rank">${rank}</div>`;
+                }
+                
+                row.innerHTML = `
+                    <td style="text-align: center;">${rankDisplay}</td>
+                    <td>User ${user.user_id}</td>
+                    <td>${formatCurrency(user.cash)}</td>
+                    <td class="${plClass}">${formatCurrency(user.profit_loss)}</td>
+                    <td>${formatCurrency(marketValue)}</td>
+                    <td><strong>${formatCurrency(user.networth)}</strong></td>
+                    <td>
+                        <button class="admin-button admin-button-primary view-details-btn" data-user-id="${user.user_id}">
+                            <i class="fas fa-info-circle"></i> Details
+                        </button>
+                    </td>
+                `;
+                
+                leaderboardBody.appendChild(row);
+                
+                // Create user details row if show details is enabled
+                if (showDetails) {
+                    createUserDetailsRow(user, row);
+                }
+                
+                // Add event listener for details button
+                const detailsButton = row.querySelector('.view-details-btn');
+                detailsButton.addEventListener('click', () => {
+                    toggleSingleUserDetails(user.user_id);
+                });
+            });
+        }
+        
+        // Create user details row
+        function createUserDetailsRow(user, afterRow) {
+            // Create a detail row
+            const detailRow = document.createElement('tr');
+            detailRow.className = 'user-detail-row';
+            detailRow.dataset.userId = user.user_id;
+            detailRow.dataset.type = 'detail';
+            
+            // Position count
+            const positionCount = Object.keys(user.open_positions || {}).length;
+            
+            // Create the content
+            const content = document.createElement('td');
+            content.colSpan = 7;
+            content.className = 'user-detail-content';
+            
+            // Format positions as a table if they exist
+            let positionsHtml = '';
+            if (positionCount > 0) {
+                positionsHtml = `
+                    <h4>Open Positions (${positionCount})</h4>
+                    <div class="position-list">
+                        <table class="admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Quantity</th>
+                                    <th>Current Value</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${Object.entries(user.open_positions).map(([symbol, quantity]) => {
+                                    const stockData = getStockData(symbol);
+                                    const currentPrice = stockData ? stockData.price : 0;
+                                    const value = quantity * currentPrice;
+                                    return `
+                                        <tr>
+                                            <td>${symbol}</td>
+                                            <td>${quantity}</td>
+                                            <td>${formatCurrency(value)}</td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+            } else {
+                positionsHtml = '<p>No open positions</p>';
+            }
+            
+            content.innerHTML = `
+                <div class="admin-card">
+                    <div class="admin-card-header">
+                        <h3 class="admin-card-title">User ${user.user_id} Details</h3>
+                    </div>
+                    
+                    <div class="admin-form-grid">
+                        <div class="admin-form-field">
+                            <label class="admin-label">Cash Balance:</label>
+                            <div>${formatCurrency(user.cash)}</div>
+                        </div>
+                        <div class="admin-form-field">
+                            <label class="admin-label">Profit/Loss:</label>
+                            <div class="${user.profit_loss >= 0 ? 'profit' : 'loss'}">${formatCurrency(user.profit_loss)}</div>
+                        </div>
+                        <div class="admin-form-field">
+                            <label class="admin-label">Market Value:</label>
+                            <div>${formatCurrency(user.networth - user.cash)}</div>
+                        </div>
+                        <div class="admin-form-field">
+                            <label class="admin-label">Net Worth:</label>
+                            <div><strong>${formatCurrency(user.networth)}</strong></div>
+                        </div>
+                    </div>
+                    
+                    ${positionsHtml}
+                    
+                    <div style="margin-top: 15px;">
+                        <a href="users.html?id=${user.user_id}" class="admin-button admin-button-primary">
+                            <i class="fas fa-user"></i> View Full Profile
+                        </a>
+                        <a href="trades.html?user=${user.user_id}" class="admin-button admin-button-primary">
+                            <i class="fas fa-exchange-alt"></i> View Trades
+                        </a>
+                        <a href="orders.html?user=${user.user_id}" class="admin-button admin-button-primary">
+                            <i class="fas fa-clipboard-list"></i> View Orders
+                        </a>
+                    </div>
+                </div>
+            `;
+            
+            detailRow.appendChild(content);
+            
+            // Insert after the user row
+            afterRow.parentNode.insertBefore(detailRow, afterRow.nextSibling);
+        }
+        
+        // Toggle all user details
+        function toggleUserDetails() {
+            showDetails = toggleDetailsCheckbox.checked;
+            
+            if (showDetails) {
+                // Add detail rows for all users
+                leaderboardData.forEach(user => {
+                    const userRow = document.querySelector(`tr[data-user-id="${user.user_id}"]:not([data-type="detail"])`);
+                    if (userRow) {
+                        // Check if detail row already exists
+                        const existingDetailRow = document.querySelector(`tr[data-user-id="${user.user_id}"][data-type="detail"]`);
+                        if (!existingDetailRow) {
+                            createUserDetailsRow(user, userRow);
+                        } else {
+                            existingDetailRow.style.display = 'table-row';
+                        }
+                    }
+                });
+            } else {
+                // Hide all detail rows
+                document.querySelectorAll('tr.user-detail-row').forEach(row => {
+                    row.style.display = 'none';
+                });
+            }
+        }
+        
+        // Toggle details for a single user
+        function toggleSingleUserDetails(userId) {
+            const detailRow = document.querySelector(`tr[data-user-id="${userId}"][data-type="detail"]`);
+            
+            if (detailRow) {
+                // Toggle visibility of existing detail row
+                detailRow.style.display = detailRow.style.display === 'none' ? 'table-row' : 'none';
+            } else {
+                // Create detail row if it doesn't exist
+                const userRow = document.querySelector(`tr[data-user-id="${userId}"]:not([data-type="detail"])`);
+                const userData = leaderboardData.find(user => user.user_id.toString() === userId.toString());
+                
+                if (userRow && userData) {
+                    createUserDetailsRow(userData, userRow);
+                }
+            }
+        }
+        
+        // Update leaderboard statistics
+        function updateLeaderboardStats(data) {
+            // Total users
+            document.getElementById('total-users').textContent = formatNumber(data.length);
+            
+            // Calculate average net worth
+            const totalNetWorth = data.reduce((sum, user) => sum + user.networth, 0);
+            const avgNetWorth = data.length > 0 ? totalNetWorth / data.length : 0;
+            document.getElementById('avg-networth').textContent = formatCurrency(avgNetWorth);
+            
+            // Highest net worth
+            const highestNetWorth = data.length > 0 ? Math.max(...data.map(user => user.networth)) : 0;
+            document.getElementById('highest-networth').textContent = formatCurrency(highestNetWorth);
+            
+            // Total P/L
+            const totalPL = data.reduce((sum, user) => sum + user.profit_loss, 0);
+            const plElement = document.getElementById('total-pl');
+            plElement.textContent = formatCurrency(totalPL);
+            plElement.className = totalPL >= 0 ? 'admin-stat-value profit' : 'admin-stat-value loss';
+        }
+        
+        // Helper function to get stock data (mock implementation)
+        function getStockData(symbol) {
+            // In a real implementation, this would fetch current stock data
+            // For now, return a default price
+            return { price: 100 };
+        }
+    </script>
+</body>
+</html> 

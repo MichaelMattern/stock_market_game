@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Trades - Stock Market Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Stock Market Game</h1>
+        <nav>
+            <a href="stocks.html">Stocks</a>
+            <a href="orderbook.html">Orderbook</a>
+            <a href="orders.html">Place Orders</a>
+            <a href="pending-orders.html">Pending Orders</a>
+            <a href="cancel-orders.html">Cancel Orders</a>
+            <a href="trades.html" class="active">My Trades</a>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Trade History</h2>
+        
+        <div class="flex-container">
+            <div class="flex-child">
+                <div>
+                    <label for="user-id">User ID:</label>
+                    <input type="number" id="user-id" value="">
+                </div>
+            </div>
+            <div class="flex-child">
+                <div>
+                    <label for="symbol">Symbol (optional):</label>
+                    <input type="text" id="symbol" placeholder="e.g. HACK">
+                </div>
+            </div>
+            <div class="flex-child">
+                <div style="margin-top: 22px;">
+                    <button id="load-trades-btn">Load Trades</button>
+                </div>
+            </div>
+        </div>
+        
+        <div id="loading">Enter a User ID and click "Load Trades"</div>
+        
+        <div id="trades-container" style="display: none; margin-top: 20px;">
+            <div class="flex-container">
+                <div class="flex-child">
+                    <h3>Trade Summary</h3>
+                    <div id="trade-summary">
+                        <!-- Trade summary will be inserted here -->
+                    </div>
+                </div>
+                <div class="flex-child">
+                    <h3>Recent Performance</h3>
+                    <canvas id="performance-chart" height="200"></canvas>
+                </div>
+            </div>
+            
+            <h3>Trade History</h3>
+            <div id="no-trades" style="display: none;">
+                <p>No trades found for this user.</p>
+            </div>
+            
+            <table id="trades-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Symbol</th>
+                        <th>Side</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total</th>
+                        <th>Date/Time</th>
+                    </tr>
+                </thead>
+                <tbody id="trades-data">
+                    <!-- Trade data will be inserted here -->
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 20px;">
+                <h3>Trade Data</h3>
+                <pre id="trade-data-json"></pre>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="scripts.js"></script>
+    <script>
+        let performanceChart = null;
+        
+        // Set up on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setActiveLink();
+            
+            // Set up event listeners
+            document.getElementById('load-trades-btn').addEventListener('click', loadTrades);
+            
+            // Load trades if user ID is in URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('user_id');
+            const symbol = urlParams.get('symbol');
+            
+            if (userId) {
+                document.getElementById('user-id').value = userId;
+                if (symbol) {
+                    document.getElementById('symbol').value = symbol;
+                }
+                loadTrades();
+            }
+            
+            // Enter key in form fields loads trades
+            const formFields = document.querySelectorAll('#user-id, #symbol');
+            formFields.forEach(field => {
+                field.addEventListener('keyup', function(e) {
+                    if (e.key === 'Enter') {
+                        loadTrades();
+                    }
+                });
+            });
+        });
+
+        // Load trade history
+        async function loadTrades() {
+            try {
+                const userId = document.getElementById('user-id').value;
+                const symbol = document.getElementById('symbol').value.trim();
+                
+                if (!userId) {
+                    document.getElementById('loading').textContent = 'Please enter a User ID';
+                    return;
+                }
+                
+                document.getElementById('loading').textContent = 'Loading trade history...';
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('trades-container').style.display = 'none';
+                
+                // Build API endpoint
+                let endpoint = `/trades/my`;
+                if (symbol) {
+                    endpoint += `&symbol=${symbol.toUpperCase()}`;
+                }
+                
+                const trades = await fetchAPI(endpoint);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('trades-container').style.display = 'block';
+                
+                if (!trades || trades.length === 0) {
+                    document.getElementById('no-trades').style.display = 'block';
+                    document.getElementById('trades-table').style.display = 'none';
+                    document.getElementById('trade-summary').innerHTML = '<p>No trades found</p>';
+                    document.getElementById('trade-data-json').textContent = '[]';
+                    
+                    // Clear chart if it exists
+                    if (performanceChart) {
+                        performanceChart.destroy();
+                        performanceChart = null;
+                    }
+                } else {
+                    document.getElementById('no-trades').style.display = 'none';
+                    document.getElementById('trades-table').style.display = 'table';
+                    
+                    renderTrades(trades);
+                    renderSummary(trades);
+                    renderPerformanceChart(trades);
+                    
+                    document.getElementById('trade-data-json').textContent = JSON.stringify(trades, null, 2);
+                }
+            } catch (error) {
+                document.getElementById('loading').textContent = `Error loading trades: ${error.message}`;
+                document.getElementById('trades-container').style.display = 'none';
+            }
+        }
+
+        // Render trade table
+        function renderTrades(trades) {
+            const tableBody = document.getElementById('trades-data');
+            tableBody.innerHTML = '';
+            
+            // Sort trades by timestamp (newest first)
+            const sortedTrades = [...trades].sort((a, b) => b.timestamp - a.timestamp);
+            
+            sortedTrades.forEach(trade => {
+                const row = document.createElement('tr');
+                const total = trade.price * trade.quantity;
+                
+                // Highlight buy or sell
+                const sideClass = trade.side === 'buy' ? 'buy-side' : 'sell-side';
+                
+                row.innerHTML = `
+                    <td>${trade.order_id}</td>
+                    <td>${trade.symbol}</td>
+                    <td style="color: ${trade.side === 'buy' ? '#a5d6a7' : '#ff8a80'}">${trade.side.toUpperCase()}</td>
+                    <td>${trade.quantity}</td>
+                    <td>${formatCurrency(trade.price)}</td>
+                    <td>${formatCurrency(total)}</td>
+                    <td>${formatDate(trade.timestamp)}</td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // Render trade summary
+        function renderSummary(trades) {
+            const summaryContainer = document.getElementById('trade-summary');
+            
+            // Calculate summary statistics
+            const totalTrades = trades.length;
+            
+            // Count buy and sell trades
+            const buyTrades = trades.filter(trade => trade.side === 'buy');
+            const sellTrades = trades.filter(trade => trade.side === 'sell');
+            
+            // Calculate total volume and value
+            let totalBuyVolume = 0;
+            let totalBuyValue = 0;
+            let totalSellVolume = 0;
+            let totalSellValue = 0;
+            
+            buyTrades.forEach(trade => {
+                totalBuyVolume += trade.quantity;
+                totalBuyValue += trade.price * trade.quantity;
+            });
+            
+            sellTrades.forEach(trade => {
+                totalSellVolume += trade.quantity;
+                totalSellValue += trade.price * trade.quantity;
+            });
+            
+            // Calculate average prices
+            const avgBuyPrice = buyTrades.length > 0 ? totalBuyValue / totalBuyVolume : 0;
+            const avgSellPrice = sellTrades.length > 0 ? totalSellValue / totalSellVolume : 0;
+            
+            // Calculate profit/loss (simplified)
+            const potentialPL = totalSellValue - totalBuyValue;
+            
+            // Create a summary table
+            summaryContainer.innerHTML = `
+                <table class="summary-table">
+                    <tr>
+                        <td><strong>Total Trades:</strong></td>
+                        <td>${totalTrades}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Buy Trades:</strong></td>
+                        <td>${buyTrades.length}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sell Trades:</strong></td>
+                        <td>${sellTrades.length}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Buy Volume:</strong></td>
+                        <td>${formatNumber(totalBuyVolume)}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sell Volume:</strong></td>
+                        <td>${formatNumber(totalSellVolume)}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Avg Buy Price:</strong></td>
+                        <td>${avgBuyPrice ? formatCurrency(avgBuyPrice) : 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Avg Sell Price:</strong></td>
+                        <td>${avgSellPrice ? formatCurrency(avgSellPrice) : 'N/A'}</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Est. P/L:</strong></td>
+                        <td style="color: ${potentialPL >= 0 ? '#a5d6a7' : '#ff8a80'}">${formatCurrency(potentialPL)}</td>
+                    </tr>
+                </table>
+            `;
+        }
+
+        // Render performance chart
+        function renderPerformanceChart(trades) {
+            // Destroy existing chart if it exists
+            if (performanceChart) {
+                performanceChart.destroy();
+            }
+            
+            // Sort trades by timestamp (oldest first)
+            const sortedTrades = [...trades].sort((a, b) => a.timestamp - b.timestamp);
+            
+            // Calculate cumulative P/L
+            let cumulativePL = 0;
+            const plData = [];
+            const labels = [];
+            
+            sortedTrades.forEach(trade => {
+                const tradeValue = trade.price * trade.quantity;
+                if (trade.side === 'buy') {
+                    cumulativePL -= tradeValue;
+                } else {
+                    cumulativePL += tradeValue;
+                }
+                
+                plData.push(cumulativePL);
+                labels.push(new Date(trade.timestamp * 1000).toLocaleString());
+            });
+            
+            // Create chart
+            const ctx = document.getElementById('performance-chart');
+            performanceChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Cumulative P/L',
+                        data: plData,
+                        borderColor: '#a5d6a7',
+                        backgroundColor: 'rgba(165, 214, 167, 0.2)',
+                        borderWidth: 2,
+                        tension: 0.1,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            display: false
+                        },
+                        y: {
+                            grid: {
+                                color: 'rgba(255, 255, 255, 0.1)'
+                            },
+                            ticks: {
+                                color: '#e8f5e9',
+                                callback: function(value) {
+                                    return formatCurrency(value);
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            labels: {
+                                color: '#e8f5e9'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return formatCurrency(context.raw);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Open Orders - Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin-styles.css">
+    <style>
+        .user-orders {
+            margin-bottom: 30px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .user-header {
+            padding: 10px 15px;
+            background-color: #f5f5f5;
+            border-bottom: 1px solid #e0e0e0;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .collapsed .user-orders-table {
+            display: none;
+        }
+        
+        .order-actions {
+            display: flex;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <div class="admin-sidebar">
+            <div class="admin-logo">Market Admin</div>
+            <ul class="admin-sidebar-nav">
+                <li><a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+                <li><a href="users.html"><i class="fas fa-users"></i> <span>User Management</span></a></li>
+                <li><a href="trades.html"><i class="fas fa-exchange-alt"></i> <span>Trade History</span></a></li>
+                <li><a href="orders.html" class="active"><i class="fas fa-clipboard-list"></i> <span>Orders</span></a></li>
+                <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Leaderboard</span></a></li>
+                <li><a href="system.html"><i class="fas fa-cogs"></i> <span>System</span></a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="admin-main">
+            <!-- Header -->
+            <div class="admin-header">
+                <h1 class="admin-title">Open Limit Orders</h1>
+                <div class="admin-user-info">
+                    <span id="admin-name">Admin</span>
+                    <button id="logout-button" class="admin-button admin-button-warn">Logout</button>
+                </div>
+            </div>
+            
+            <!-- Order Filter Options -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Filter Orders</h2>
+                </div>
+                <div class="admin-form-grid">
+                    <div class="admin-form-field">
+                        <label class="admin-label">Symbol:</label>
+                        <input type="text" id="symbol-filter" class="admin-input" placeholder="All symbols">
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label">Side:</label>
+                        <select id="side-filter" class="admin-select">
+                            <option value="">All Sides</option>
+                            <option value="buy">Buy</option>
+                            <option value="sell">Sell</option>
+                        </select>
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label">&nbsp;</label>
+                        <button id="apply-filters" class="admin-button admin-button-primary">Apply Filters</button>
+                        <button id="reset-filters" class="admin-button">Reset</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Order Summary -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Order Summary</h2>
+                    <button id="refresh-orders" class="admin-button admin-button-primary">Refresh Orders</button>
+                </div>
+                <div class="admin-stats">
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Total Open Limit Orders</h3>
+                        <div class="admin-stat-value" id="total-orders">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Buy Orders</h3>
+                        <div class="admin-stat-value" id="buy-orders">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Sell Orders</h3>
+                        <div class="admin-stat-value" id="sell-orders">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Users with Orders</h3>
+                        <div class="admin-stat-value" id="users-with-orders">-</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Orders by User -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Limit Orders by User</h2>
+                    <div>
+                        <button id="expand-all" class="admin-button">Expand All</button>
+                        <button id="collapse-all" class="admin-button">Collapse All</button>
+                    </div>
+                </div>
+                
+                <div id="orders-by-user-container">
+                    <div class="admin-loading" id="orders-loading">
+                        <div class="admin-loading-spinner"></div>
+                        <div>Loading orders...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="admin-scripts.js"></script>
+    <script>
+        // Variables
+        let allOrders = [];
+        let filteredOrders = [];
+        let userOrderGroups = {};
+        
+        // DOM Elements
+        const ordersByUserContainer = document.getElementById('orders-by-user-container');
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set admin name
+            const adminId = localStorage.getItem('adminId');
+            if (adminId) {
+                document.getElementById('admin-name').textContent = `Admin ${adminId}`;
+            }
+            
+            // Load orders
+            loadAllOrders();
+            
+            // Add event listeners
+            document.getElementById('apply-filters').addEventListener('click', applyFilters);
+            document.getElementById('reset-filters').addEventListener('click', resetFilters);
+            document.getElementById('refresh-orders').addEventListener('click', loadAllOrders);
+            document.getElementById('expand-all').addEventListener('click', expandAllUsers);
+            document.getElementById('collapse-all').addEventListener('click', collapseAllUsers);
+        });
+        
+        // Load all open orders
+        async function loadAllOrders() {
+            try {
+                // Show loading
+                ordersByUserContainer.innerHTML = '<div class="admin-loading" id="orders-loading"><div class="admin-loading-spinner"></div><div>Loading orders...</div></div>';
+                
+                // Fetch all pending limit orders using the admin endpoint
+                const orders = await fetchWithAuth('/orders/admin/pending?order_type=limit');
+                
+                // Store orders
+                allOrders = orders;
+                
+                // Apply any active filters
+                applyFilters();
+            } catch (error) {
+                console.error('Error loading orders:', error);
+                ordersByUserContainer.innerHTML = `<div class="admin-alert admin-alert-error">Error loading orders: ${error.message}</div>`;
+                showNotification('Error loading orders', 'error');
+            }
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            const symbolFilter = document.getElementById('symbol-filter').value.toUpperCase();
+            const sideFilter = document.getElementById('side-filter').value;
+            
+            // Filter orders
+            filteredOrders = allOrders.filter(order => {
+                // Symbol filter
+                if (symbolFilter && order.symbol !== symbolFilter) {
+                    return false;
+                }
+                
+                // Side filter
+                if (sideFilter && order.side !== sideFilter) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // Group by user
+            groupOrdersByUser();
+            
+            // Display orders
+            displayOrdersByUser();
+            
+            // Update summary
+            updateOrderSummary();
+        }
+        
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('symbol-filter').value = '';
+            document.getElementById('side-filter').value = '';
+            
+            // Show all orders
+            filteredOrders = [...allOrders];
+            
+            // Group by user
+            groupOrdersByUser();
+            
+            // Display orders
+            displayOrdersByUser();
+            
+            // Update summary
+            updateOrderSummary();
+        }
+        
+        // Group orders by user
+        function groupOrdersByUser() {
+            userOrderGroups = {};
+            
+            // Group orders by user_id
+            filteredOrders.forEach(order => {
+                const userId = order.user_id;
+                if (!userOrderGroups[userId]) {
+                    userOrderGroups[userId] = [];
+                }
+                userOrderGroups[userId].push(order);
+            });
+            
+            // Sort orders within each user group by timestamp (newest first)
+            Object.keys(userOrderGroups).forEach(userId => {
+                userOrderGroups[userId].sort((a, b) => b.timestamp - a.timestamp);
+            });
+        }
+        
+        // Display orders grouped by user
+        function displayOrdersByUser() {
+            // Clear the container
+            ordersByUserContainer.innerHTML = '';
+            
+            if (Object.keys(userOrderGroups).length === 0) {
+                ordersByUserContainer.innerHTML = '<div class="admin-alert admin-alert-info">No orders match the current filters</div>';
+                return;
+            }
+            
+            // Sort users by user ID
+            const sortedUserIds = Object.keys(userOrderGroups).sort((a, b) => parseInt(a) - parseInt(b));
+            
+            // Create a section for each user
+            sortedUserIds.forEach(userId => {
+                const userOrders = userOrderGroups[userId];
+                const totalOrderValue = userOrders.reduce((sum, order) => {
+                    return sum + (order.quantity * (order.limit_price || 0));
+                }, 0);
+                
+                // Create user orders container
+                const userOrdersContainer = document.createElement('div');
+                userOrdersContainer.className = 'user-orders';
+                userOrdersContainer.dataset.userId = userId;
+                
+                // Create user header
+                const userHeader = document.createElement('div');
+                userHeader.className = 'user-header';
+                userHeader.innerHTML = `
+                    <div>
+                        <strong>User ID: ${userId}</strong> - 
+                        ${userOrders.length} order${userOrders.length !== 1 ? 's' : ''}
+                    </div>
+                    <div>
+                        Total Value: ${formatCurrency(totalOrderValue)}
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                `;
+                
+                // Add click event to toggle collapsing
+                userHeader.addEventListener('click', () => {
+                    userOrdersContainer.classList.toggle('collapsed');
+                    const icon = userHeader.querySelector('i');
+                    if (userOrdersContainer.classList.contains('collapsed')) {
+                        icon.className = 'fas fa-chevron-right';
+                    } else {
+                        icon.className = 'fas fa-chevron-down';
+                    }
+                });
+                
+                // Create orders table
+                const ordersTable = document.createElement('table');
+                ordersTable.className = 'admin-table user-orders-table';
+                
+                // Table header
+                ordersTable.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Symbol</th>
+                            <th>Type</th>
+                            <th>Side</th>
+                            <th>Quantity</th>
+                            <th>Limit Price</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${userOrders.map(order => `
+                            <tr>
+                                <td>${order.order_id}</td>
+                                <td>${order.symbol}</td>
+                                <td>${order.order_type.toUpperCase()}</td>
+                                <td style="color: ${order.side === 'buy' ? '#4caf50' : '#f44336'}">${order.side.toUpperCase()}</td>
+                                <td>${order.quantity}</td>
+                                <td>${order.limit_price ? formatCurrency(order.limit_price) : 'N/A'}</td>
+                                <td>${formatDate(order.timestamp)}</td>
+                                <td class="order-actions">
+                                    <button class="admin-button admin-button-warn cancel-order-btn" data-order-id="${order.order_id}" data-user-id="${order.user_id}">
+                                        Cancel
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                `;
+                
+                // Add event listeners for cancel buttons
+                ordersTable.querySelectorAll('.cancel-order-btn').forEach(button => {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation(); // Prevent triggering the collapse/expand
+                        const orderId = button.dataset.orderId;
+                        const userId = button.dataset.userId;
+                        cancelOrder(orderId, userId);
+                    });
+                });
+                
+                // Assemble the user orders section
+                userOrdersContainer.appendChild(userHeader);
+                userOrdersContainer.appendChild(ordersTable);
+                
+                // Add to the main container
+                ordersByUserContainer.appendChild(userOrdersContainer);
+            });
+        }
+        
+        // Update order summary
+        function updateOrderSummary() {
+            document.getElementById('total-orders').textContent = formatNumber(filteredOrders.length);
+            
+            const buyOrders = filteredOrders.filter(order => order.side === 'buy');
+            const sellOrders = filteredOrders.filter(order => order.side === 'sell');
+            
+            document.getElementById('buy-orders').textContent = formatNumber(buyOrders.length);
+            document.getElementById('sell-orders').textContent = formatNumber(sellOrders.length);
+            document.getElementById('users-with-orders').textContent = formatNumber(Object.keys(userOrderGroups).length);
+        }
+        
+        // Expand all user order sections
+        function expandAllUsers() {
+            document.querySelectorAll('.user-orders').forEach(container => {
+                container.classList.remove('collapsed');
+                const icon = container.querySelector('.user-header i');
+                icon.className = 'fas fa-chevron-down';
+            });
+        }
+        
+        // Collapse all user order sections
+        function collapseAllUsers() {
+            document.querySelectorAll('.user-orders').forEach(container => {
+                container.classList.add('collapsed');
+                const icon = container.querySelector('.user-header i');
+                icon.className = 'fas fa-chevron-right';
+            });
+        }
+        
+        // Cancel an order
+        async function cancelOrder(orderId, userId) {
+            if (!confirm(`Are you sure you want to cancel order ${orderId} for user ${userId}?`)) {
+                return;
+            }
+            
+            try {
+                await fetchWithAuth(`/admin/orders/cancel?order_id=${orderId}&user_id=${userId}`, {
+                    method: 'DELETE'
+                });
+                
+                showNotification(`Order ${orderId} cancelled successfully`, 'success');
+                
+                // Reload all orders
+                await loadAllOrders();
+            } catch (error) {
+                console.error('Error cancelling order:', error);
+                showNotification(`Error cancelling order: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 

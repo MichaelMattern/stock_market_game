@@ -1,0 +1,329 @@
+    <!-- Sidebar Navigation -->
+    <div class="admin-sidebar">
+      <div class="admin-logo">Admin Panel</div>
+      <ul class="admin-sidebar-nav">
+        <li><a href="#" onclick="showSection('dashboard-section')" id="nav-dashboard"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+        <li><a href="#" onclick="showSection('trades-section')" id="nav-trades"><i class="fas fa-exchange-alt"></i> <span>Trade History</span></a></li>
+        <li><a href="#" onclick="showSection('orders-section')" id="nav-orders"><i class="fas fa-list"></i> <span>Orders</span></a></li>
+        <li><a href="#" onclick="showSection('leaderboard-section')" id="nav-leaderboard"><i class="fas fa-trophy"></i> <span>Leaderboard</span></a></li>
+        <li><a href="#" onclick="showSection('users-section')" id="nav-users"><i class="fas fa-users"></i> <span>Users</span></a></li>
+      </ul>
+    </div>
+
+    <!-- Dashboard Section -->
+    <div class="section admin-card" id="dashboard-section">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">Dashboard</h2>
+        <button class="admin-button admin-button-primary" onclick="refreshDashboard()">Refresh</button>
+      </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Total Users</div>
+          <div class="admin-stat-value" id="total-users">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Active Orders</div>
+          <div class="admin-stat-value" id="active-orders">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Total Trades</div>
+          <div class="admin-stat-value" id="total-trades">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Total Volume</div>
+          <div class="admin-stat-value" id="total-volume">-</div>
+        </div>
+      </div>
+      <div class="admin-card-content">
+        <h3>Recent Orders</h3>
+        <pre id="recent-orders-result"></pre>
+      </div>
+    </div>
+
+    <!-- Trade History Section -->
+    <div class="section admin-card" id="trades-section">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">Trade History</h2>
+        <button class="admin-button admin-button-primary" onclick="getTrades()">Refresh</button>
+      </div>
+      <div class="admin-form-grid">
+        <div class="admin-form-field">
+          <label class="admin-label">Symbol:</label>
+          <input type="text" id="trades-symbol" class="admin-input" placeholder="Filter by symbol" />
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">User ID:</label>
+          <input type="number" id="trades-userid" class="admin-input" placeholder="Filter by user" />
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">Side:</label>
+          <select id="trades-side" class="admin-select">
+            <option value="">All</option>
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">Limit:</label>
+          <input type="number" id="trades-limit" value="50" min="1" max="500" class="admin-input" />
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">&nbsp;</label>
+          <button class="admin-button admin-button-primary" onclick="getTrades()">Apply Filters</button>
+        </div>
+      </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Total Trades</div>
+          <div class="admin-stat-value" id="trades-total">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Total Volume</div>
+          <div class="admin-stat-value" id="trades-volume">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Most Active User</div>
+          <div class="admin-stat-value" id="trades-active-user">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Most Traded Stock</div>
+          <div class="admin-stat-value" id="trades-active-stock">-</div>
+        </div>
+      </div>
+      <pre id="trades-result"></pre>
+    </div>
+
+    <!-- Orders Section -->
+    <div class="section admin-card" id="orders-section">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">Orders</h2>
+        <button class="admin-button admin-button-primary" onclick="getOrders()">Refresh</button>
+      </div>
+      <div class="admin-form-grid">
+        <div class="admin-form-field">
+          <label class="admin-label">Symbol:</label>
+          <input type="text" id="orders-symbol" class="admin-input" placeholder="Filter by symbol" />
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">User ID:</label>
+          <input type="number" id="orders-userid" class="admin-input" placeholder="Filter by user" />
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">Side:</label>
+          <select id="orders-side" class="admin-select">
+            <option value="">All</option>
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">Type:</label>
+          <select id="orders-type" class="admin-select">
+            <option value="">All</option>
+            <option value="market">Market</option>
+            <option value="limit">Limit</option>
+          </select>
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">&nbsp;</label>
+          <button class="admin-button admin-button-primary" onclick="getOrders()">Apply Filters</button>
+        </div>
+      </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Total Orders</div>
+          <div class="admin-stat-value" id="orders-total">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Buy Orders</div>
+          <div class="admin-stat-value" id="orders-buy">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Sell Orders</div>
+          <div class="admin-stat-value" id="orders-sell">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Most Active User</div>
+          <div class="admin-stat-value" id="orders-active-user">-</div>
+        </div>
+      </div>
+      <pre id="orders-result"></pre>
+    </div>
+
+    <!-- Leaderboard Section -->
+    <div class="section admin-card" id="leaderboard-section">
+      <div class="admin-card-header">
+        <h2 class="admin-card-title">Leaderboard</h2>
+        <button class="admin-button admin-button-primary" onclick="getLeaderboard()">Refresh</button>
+      </div>
+      <div class="admin-stats-grid">
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Total Users</div>
+          <div class="admin-stat-value" id="leaderboard-total-users">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Average Networth</div>
+          <div class="admin-stat-value" id="leaderboard-avg-networth">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Total P/L</div>
+          <div class="admin-stat-value" id="leaderboard-total-pl">-</div>
+        </div>
+        <div class="admin-stat-card">
+          <div class="admin-stat-title">Most Active User</div>
+          <div class="admin-stat-value" id="leaderboard-active-user">-</div>
+        </div>
+      </div>
+      <pre id="leaderboard-result"></pre>
+    </div>
+
+    // Get all trades with filters
+    async function getTrades() {
+      const symbol = document.getElementById("trades-symbol").value;
+      const userId = document.getElementById("trades-userid").value;
+      const side = document.getElementById("trades-side").value;
+      const limit = document.getElementById("trades-limit").value;
+      
+      try {
+        let url = `${BASE_URL}/admin/trades/`;
+        const params = new URLSearchParams();
+        if (symbol) params.append('symbol', symbol);
+        if (userId) params.append('user_id', userId);
+        if (side) params.append('side', side);
+        if (limit) params.append('limit', limit);
+        
+        if (params.toString()) {
+          url += '?' + params.toString();
+        }
+        
+        const data = await apiRequest(url);
+        const resultElement = document.getElementById("trades-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+        
+        // Update statistics
+        document.getElementById("trades-total").textContent = data.length;
+        document.getElementById("trades-volume").textContent = data.reduce((sum, trade) => sum + trade.quantity, 0).toFixed(2);
+        
+        // Calculate most active user and stock
+        const userCounts = {};
+        const stockCounts = {};
+        data.forEach(trade => {
+          userCounts[trade.user_id] = (userCounts[trade.user_id] || 0) + 1;
+          stockCounts[trade.symbol] = (stockCounts[trade.symbol] || 0) + 1;
+        });
+        
+        const mostActiveUser = Object.entries(userCounts).sort((a, b) => b[1] - a[1])[0];
+        const mostActiveStock = Object.entries(stockCounts).sort((a, b) => b[1] - a[1])[0];
+        
+        document.getElementById("trades-active-user").textContent = mostActiveUser ? `User ${mostActiveUser[0]} (${mostActiveUser[1]} trades)` : '-';
+        document.getElementById("trades-active-stock").textContent = mostActiveStock ? `${mostActiveStock[0]} (${mostActiveStock[1]} trades)` : '-';
+      } catch (error) {
+        displayError("trades-result", error);
+      }
+    }
+
+    // Get all orders with filters
+    async function getOrders() {
+      const symbol = document.getElementById("orders-symbol").value;
+      const userId = document.getElementById("orders-userid").value;
+      const side = document.getElementById("orders-side").value;
+      const type = document.getElementById("orders-type").value;
+      
+      try {
+        let url = `${BASE_URL}/admin/orders/`;
+        const params = new URLSearchParams();
+        if (symbol) params.append('symbol', symbol);
+        if (userId) params.append('user_id', userId);
+        if (side) params.append('side', side);
+        if (type) params.append('type', type);
+        
+        if (params.toString()) {
+          url += '?' + params.toString();
+        }
+        
+        const data = await apiRequest(url);
+        const resultElement = document.getElementById("orders-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+        
+        // Update statistics
+        document.getElementById("orders-total").textContent = data.length;
+        document.getElementById("orders-buy").textContent = data.filter(order => order.side === 'buy').length;
+        document.getElementById("orders-sell").textContent = data.filter(order => order.side === 'sell').length;
+        
+        // Calculate most active user
+        const userCounts = {};
+        data.forEach(order => {
+          userCounts[order.user_id] = (userCounts[order.user_id] || 0) + 1;
+        });
+        
+        const mostActiveUser = Object.entries(userCounts).sort((a, b) => b[1] - a[1])[0];
+        document.getElementById("orders-active-user").textContent = mostActiveUser ? `User ${mostActiveUser[0]} (${mostActiveUser[1]} orders)` : '-';
+      } catch (error) {
+        displayError("orders-result", error);
+      }
+    }
+
+    // Get leaderboard data
+    async function getLeaderboard() {
+      try {
+        const data = await apiRequest(`${BASE_URL}/admin/leaderboard/`);
+        const resultElement = document.getElementById("leaderboard-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+        
+        // Update statistics
+        document.getElementById("leaderboard-total-users").textContent = data.length;
+        document.getElementById("leaderboard-avg-networth").textContent = 
+          (data.reduce((sum, user) => sum + user.networth, 0) / data.length).toFixed(2);
+        document.getElementById("leaderboard-total-pl").textContent = 
+          data.reduce((sum, user) => sum + (user.networth - 100000), 0).toFixed(2);
+        
+        // Find most active user
+        const mostActiveUser = data.reduce((max, user) => 
+          (user.trades_count > max.trades_count) ? user : max
+        );
+        document.getElementById("leaderboard-active-user").textContent = 
+          mostActiveUser ? `User ${mostActiveUser.user_id} (${mostActiveUser.trades_count} trades)` : '-';
+      } catch (error) {
+        displayError("leaderboard-result", error);
+      }
+    }
+
+    // Refresh dashboard data
+    async function refreshDashboard() {
+      try {
+        // Get total users
+        const usersData = await apiRequest(`${BASE_URL}/admin/users/`);
+        document.getElementById("total-users").textContent = usersData.length;
+
+        // Get active orders
+        const ordersData = await apiRequest(`${BASE_URL}/admin/orders/`);
+        document.getElementById("active-orders").textContent = ordersData.length;
+
+        // Get total trades
+        const tradesData = await apiRequest(`${BASE_URL}/admin/trades/`);
+        document.getElementById("total-trades").textContent = tradesData.length;
+        document.getElementById("total-volume").textContent = 
+          tradesData.reduce((sum, trade) => sum + trade.quantity, 0).toFixed(2);
+
+        // Get recent orders
+        const recentOrders = ordersData.slice(0, 5); // Show last 5 orders
+        const resultElement = document.getElementById("recent-orders-result");
+        resultElement.textContent = JSON.stringify(recentOrders, null, 2);
+        resultElement.style.color = 'inherit';
+      } catch (error) {
+        console.error("Error refreshing dashboard:", error);
+        displayError("recent-orders-result", error);
+      }
+    }
+
+    // Display the first section by default (Dashboard) and setup page
+    document.addEventListener('DOMContentLoaded', () => {
+      // Show dashboard section as default
+      showSection('dashboard-section');
+      
+      // Initial data load
+      refreshDashboard();
+    }); 

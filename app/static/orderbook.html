@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orderbook - Stock Market Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Stock Market Game</h1>
+        <nav>
+            <a href="stocks.html">Stocks</a>
+            <a href="orderbook.html" class="active">Orderbook</a>
+            <a href="orders.html">Place Orders</a>
+            <a href="pending-orders.html">Pending Orders</a>
+            <a href="cancel-orders.html">Cancel Orders</a>
+            <a href="trades.html">My Trades</a>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Market Orderbook</h2>
+        
+        <div class="flex-container">
+            <div class="flex-child">
+                <label for="symbol">Symbol:</label>
+                <input type="text" id="symbol" value="HACK">
+            </div>
+            <div class="flex-child">
+                <button id="refresh-btn">Refresh Orderbook</button>
+            </div>
+        </div>
+        
+        <div id="loading">Loading orderbook data...</div>
+        
+        <div id="orderbook-container" style="display: none;">
+            <div class="flex-container">
+                <div class="flex-child">
+                    <h3>Buy Orders</h3>
+                    <table id="buy-orders">
+                        <thead>
+                            <tr>
+                                <th>Price</th>
+                                <th>Volume</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="buy-orders-data">
+                            <!-- Buy orders will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="flex-child">
+                    <h3>Sell Orders</h3>
+                    <table id="sell-orders">
+                        <thead>
+                            <tr>
+                                <th>Price</th>
+                                <th>Volume</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="sell-orders-data">
+                            <!-- Sell orders will be inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h3>Current Spread</h3>
+                <div id="spread-info" class="flex-container">
+                    <!-- Spread information will be inserted here -->
+                </div>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h3>Orderbook Details</h3>
+                <pre id="orderbook-json"></pre>
+            </div>
+        </div>
+    </main>
+
+    <script src="scripts.js"></script>
+    <script>
+        // Load orderbook on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            setActiveLink();
+            await loadOrderbook();
+            
+            // Set up event listeners
+            document.getElementById('refresh-btn').addEventListener('click', loadOrderbook);
+            document.getElementById('symbol').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    loadOrderbook();
+                }
+            });
+        });
+
+        // Load orderbook data
+        async function loadOrderbook() {
+            try {
+                const symbol = document.getElementById('symbol').value.toUpperCase();
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('orderbook-container').style.display = 'none';
+                
+                const data = await fetchAPI(`/orderbook/?symbol=${symbol}`);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('orderbook-container').style.display = 'block';
+                
+                renderOrderbook(data);
+            } catch (error) {
+                document.getElementById('loading').textContent = `Error loading orderbook: ${error.message}`;
+            }
+        }
+
+        // Render orderbook data
+        function renderOrderbook(data) {
+            // Display raw data
+            document.getElementById('orderbook-json').textContent = JSON.stringify(data, null, 2);
+            
+            // Buy orders
+            const buyOrdersBody = document.getElementById('buy-orders-data');
+            buyOrdersBody.innerHTML = '';
+            
+            if (data.buy_orders && data.buy_orders.orders && data.buy_orders.orders.length > 0) {
+                // Sort buy orders by price (highest first)
+                const sortedBuyOrders = [...data.buy_orders.orders].sort((a, b) => b.price - a.price);
+                
+                sortedBuyOrders.forEach(order => {
+                    const row = document.createElement('tr');
+                    const total = order.price * order.volume;
+                    
+                    row.innerHTML = `
+                        <td>${formatCurrency(order.price)}</td>
+                        <td>${formatNumber(order.volume)}</td>
+                        <td>${formatCurrency(total)}</td>
+                    `;
+                    
+                    buyOrdersBody.appendChild(row);
+                });
+            } else {
+                buyOrdersBody.innerHTML = '<tr><td colspan="3">No buy orders available</td></tr>';
+            }
+            
+            // Sell orders
+            const sellOrdersBody = document.getElementById('sell-orders-data');
+            sellOrdersBody.innerHTML = '';
+            
+            if (data.sell_orders && data.sell_orders.orders && data.sell_orders.orders.length > 0) {
+                // Sort sell orders by price (lowest first)
+                const sortedSellOrders = [...data.sell_orders.orders].sort((a, b) => a.price - b.price);
+                
+                sortedSellOrders.forEach(order => {
+                    const row = document.createElement('tr');
+                    const total = order.price * order.volume;
+                    
+                    row.innerHTML = `
+                        <td>${formatCurrency(order.price)}</td>
+                        <td>${formatNumber(order.volume)}</td>
+                        <td>${formatCurrency(total)}</td>
+                    `;
+                    
+                    sellOrdersBody.appendChild(row);
+                });
+            } else {
+                sellOrdersBody.innerHTML = '<tr><td colspan="3">No sell orders available</td></tr>';
+            }
+            
+            // Calculate spread
+            const spreadInfo = document.getElementById('spread-info');
+            spreadInfo.innerHTML = '';
+            
+            if (data.buy_orders?.orders?.length > 0 && data.sell_orders?.orders?.length > 0) {
+                // Find highest buy price and lowest sell price
+                const highestBid = Math.max(...data.buy_orders.orders.map(order => order.price));
+                const lowestAsk = Math.min(...data.sell_orders.orders.map(order => order.price));
+                const spread = lowestAsk - highestBid;
+                const spreadPercent = (spread / lowestAsk) * 100;
+                
+                spreadInfo.innerHTML = `
+                    <div class="flex-child">
+                        <strong>Highest Bid:</strong> ${formatCurrency(highestBid)}
+                    </div>
+                    <div class="flex-child">
+                        <strong>Lowest Ask:</strong> ${formatCurrency(lowestAsk)}
+                    </div>
+                    <div class="flex-child">
+                        <strong>Spread:</strong> ${formatCurrency(spread)} (${spreadPercent.toFixed(2)}%)
+                    </div>
+                `;
+            } else {
+                spreadInfo.innerHTML = '<div>Insufficient order data to calculate spread</div>';
+            }
+        }
+    </script>
+</body>
+</html> 

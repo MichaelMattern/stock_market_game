@@ -4,10 +4,50 @@ import json
 import numpy as np
 import threading
 from app.redis_client import redis_client
+from app.database import SessionLocal
+from app.models import StockHistory
+from sqlalchemy.orm import Session
+from datetime import datetime
+
+# Maximum number of historical data points to keep per timeframe
+MAX_HISTORY_POINTS = 1000
+
+def store_historical_data(session: Session, symbol: str, stock_data: dict, timeframe: str):
+    """
+    Store historical data in the database.
+    """
+    try:
+        print(f"Storing historical data: {symbol}, timeframe: {timeframe}, price: {stock_data['price']}")
+        
+        # Convert numpy types to standard Python types
+        price = float(stock_data["price"])
+        volume = float(stock_data["volume"])
+        volatility = float(stock_data["volatility"])
+        liquidity = float(stock_data.get("liquidity", 0))
+        
+        # Convert Unix timestamp to datetime
+        timestamp = datetime.fromtimestamp(stock_data["timestamp"])
+        
+        history = StockHistory(
+            symbol=symbol,
+            price=price,
+            volume=volume,
+            volatility=volatility,
+            timestamp=timestamp,  # Using datetime object now
+            liquidity=liquidity,
+            interval=timeframe  # Using interval instead of timeframe
+        )
+        session.add(history)
+        session.commit()
+        print(f"Successfully stored historical data for {symbol}")
+    except Exception as e:
+        print(f"Error storing historical data: {e}")
+        session.rollback()
 
 def run_simulation(symbol, params, dt=1/252, sleep_time=5, gamma=1e-4):
     """
     Simulates market dynamics for a given stock symbol, incorporating order flow feedback.
+    Now also stores historical data in both Redis and the database.
     """
     # Initial state
     price = params["S0"]
@@ -47,16 +87,57 @@ def run_simulation(symbol, params, dt=1/252, sleep_time=5, gamma=1e-4):
         liquidity = base_liquidity * (base_volume / volume) * (params["sigma0"] / volatility)
 
         # --- Build Market Data ---
+        current_time = int(time.time())
         stock_data = {
             "symbol": symbol,
             "price": price,
             "volatility": volatility,
             "volume": volume,
             "liquidity": liquidity,
-            "timestamp": int(time.time())
+            "timestamp": current_time
         }
+        
         # Store the current stock data in Redis under key "HACK"
         redis_client.set(symbol, json.dumps(stock_data))
+        
+        # Store historical data point in Redis and database
+        stock_data_json = json.dumps(stock_data)
+        
+        # Create a database session
+        session = SessionLocal()
+        try:
+            # Add to historical data for all timeframes
+            # 1-minute data
+            redis_client.zadd(f"history:1m:{symbol}", {stock_data_json: current_time})
+            redis_client.zremrangebyrank(f"history:1m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
+            store_historical_data(session, symbol, stock_data, "1m")
+            
+            # Store in 5-minute history if it aligns with 5-minute intervals
+            if current_time % 300 < sleep_time:
+                redis_client.zadd(f"history:5m:{symbol}", {stock_data_json: current_time})
+                redis_client.zremrangebyrank(f"history:5m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
+                store_historical_data(session, symbol, stock_data, "5m")
+            
+            # Store in 15-minute history if it aligns with 15-minute intervals
+            if current_time % 900 < sleep_time:
+                redis_client.zadd(f"history:15m:{symbol}", {stock_data_json: current_time})
+                redis_client.zremrangebyrank(f"history:15m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
+                store_historical_data(session, symbol, stock_data, "15m")
+            
+            # Store in 30-minute history if it aligns with 30-minute intervals
+            if current_time % 1800 < sleep_time:
+                redis_client.zadd(f"history:30m:{symbol}", {stock_data_json: current_time})
+                redis_client.zremrangebyrank(f"history:30m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
+                store_historical_data(session, symbol, stock_data, "30m")
+            
+            # Store in 1-hour history if it aligns with hourly intervals
+            if current_time % 3600 < sleep_time:
+                redis_client.zadd(f"history:1h:{symbol}", {stock_data_json: current_time})
+                redis_client.zremrangebyrank(f"history:1h:{symbol}", 0, -MAX_HISTORY_POINTS-1)
+                store_historical_data(session, symbol, stock_data, "1h")
+        finally:
+            session.close()
+            
         time.sleep(sleep_time)
 
 def run_trade_simulation(symbol, sleep_time=3):

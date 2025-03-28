@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Stock Market Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <div class="admin-sidebar">
+            <div class="admin-logo">Market Admin</div>
+            <ul class="admin-sidebar-nav">
+                <li><a href="dashboard.html" class="active"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+                <li><a href="users.html"><i class="fas fa-users"></i> <span>User Management</span></a></li>
+                <li><a href="trades.html"><i class="fas fa-exchange-alt"></i> <span>Trade History</span></a></li>
+                <li><a href="orders.html"><i class="fas fa-clipboard-list"></i> <span>Orders</span></a></li>
+                <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Leaderboard</span></a></li>
+                <li><a href="system.html"><i class="fas fa-cogs"></i> <span>System</span></a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="admin-main">
+            <!-- Header -->
+            <div class="admin-header">
+                <h1 class="admin-title">Dashboard</h1>
+                <div class="admin-user-info">
+                    <span id="admin-name">Admin</span>
+                    <button id="logout-button" class="admin-button admin-button-warn">Logout</button>
+                </div>
+            </div>
+            
+            <!-- Stats Overview -->
+            <div class="admin-stats">
+                <div class="admin-stat-card">
+                    <h3 class="admin-stat-title">Total Users</h3>
+                    <div class="admin-stat-value" id="total-users">-</div>
+                    <div class="admin-stat-change positive" id="users-change">+0% from yesterday</div>
+                </div>
+                
+                <div class="admin-stat-card">
+                    <h3 class="admin-stat-title">Total Trades</h3>
+                    <div class="admin-stat-value" id="total-trades">-</div>
+                    <div class="admin-stat-change positive" id="trades-change">+0% from yesterday</div>
+                </div>
+                
+                <div class="admin-stat-card">
+                    <h3 class="admin-stat-title">Pending Orders</h3>
+                    <div class="admin-stat-value" id="pending-orders">-</div>
+                    <div class="admin-stat-change" id="orders-change">0% change</div>
+                </div>
+                
+                <div class="admin-stat-card">
+                    <h3 class="admin-stat-title">Trading Volume</h3>
+                    <div class="admin-stat-value" id="trading-volume">-</div>
+                    <div class="admin-stat-change" id="volume-change">0% change</div>
+                </div>
+            </div>
+            
+            <!-- Recent Activity -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Recent Trades</h2>
+                    <a href="trades.html" class="admin-button admin-button-primary">View All</a>
+                </div>
+                
+                <table class="admin-table" id="recent-trades-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>User</th>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-trades-data">
+                        <tr>
+                            <td colspan="8" style="text-align: center;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Top Users -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Top Users</h2>
+                    <a href="leaderboard.html" class="admin-button admin-button-primary">View Leaderboard</a>
+                </div>
+                
+                <table class="admin-table" id="top-users-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>User ID</th>
+                            <th>Cash</th>
+                            <th>P/L</th>
+                            <th>Net Worth</th>
+                        </tr>
+                    </thead>
+                    <tbody id="top-users-data">
+                        <tr>
+                            <td colspan="5" style="text-align: center;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Recent Orders -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Recent Orders</h2>
+                    <a href="orders.html" class="admin-button admin-button-primary">View All Orders</a>
+                </div>
+                
+                <table class="admin-table" id="recent-orders-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>User</th>
+                            <th>Symbol</th>
+                            <th>Type</th>
+                            <th>Side</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="recent-orders-data">
+                        <tr>
+                            <td colspan="8" style="text-align: center;">Loading...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script src="admin-scripts.js"></script>
+    <script>
+        // Load dashboard data on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set admin name
+            const adminId = localStorage.getItem('adminId');
+            if (adminId) {
+                document.getElementById('admin-name').textContent = `Admin ${adminId}`;
+            }
+            
+            try {
+                // Load stats
+                await loadStats();
+                
+                // Load recent trades
+                await loadRecentTrades();
+                
+                // Load top users
+                await loadTopUsers();
+                
+                // Load recent orders
+                await loadRecentOrders();
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showNotification('Error loading dashboard data', 'error');
+            }
+        });
+        
+        // Load stats
+        async function loadStats() {
+            try {
+                // Fetch real statistics from API
+                const [userStats, tradeStats, orderStats] = await Promise.all([
+                    fetchWithAuth('/admin/accounts/stats'),
+                    fetchWithAuth('/admin/trades/stats'),
+                    fetchWithAuth('/admin/orders/stats')
+                ]);
+                
+                console.log('User Stats:', userStats);
+                console.log('Trade Stats:', tradeStats);
+                console.log('Order Stats:', orderStats);
+                
+                // Update the UI with real data
+                // Users
+                if (userStats && !userStats.error) {
+                    document.getElementById('total-users').textContent = formatNumber(userStats.total || userStats.total_accounts || userStats.regular_accounts || 0);
+                    document.getElementById('users-change').textContent = `${userStats.change || 0}% change`;
+                } else {
+                    document.getElementById('total-users').textContent = 'N/A';
+                    document.getElementById('users-change').textContent = 'Data unavailable';
+                }
+                
+                // Trades
+                if (tradeStats && !tradeStats.error) {
+                    document.getElementById('total-trades').textContent = formatNumber(tradeStats.total || tradeStats.total_trades || 0);
+                    document.getElementById('trades-change').textContent = `${tradeStats.change || 0}% change`;
+                    document.getElementById('trading-volume').textContent = formatCurrency(tradeStats.volume || tradeStats.total_value || 0);
+                    document.getElementById('volume-change').textContent = `${tradeStats.volumeChange || 0}% change`;
+                } else {
+                    document.getElementById('total-trades').textContent = 'N/A';
+                    document.getElementById('trades-change').textContent = 'Data unavailable';
+                    document.getElementById('trading-volume').textContent = 'N/A';
+                    document.getElementById('volume-change').textContent = 'Data unavailable';
+                }
+                
+                // Orders
+                if (orderStats && !orderStats.error) {
+                    document.getElementById('pending-orders').textContent = formatNumber(orderStats.pending || orderStats.total_pending_orders || 0);
+                    document.getElementById('orders-change').textContent = `${orderStats.change || 0}% change`;
+                } else {
+                    document.getElementById('pending-orders').textContent = 'N/A';
+                    document.getElementById('orders-change').textContent = 'Data unavailable';
+                }
+                
+                // Set colors based on change direction
+                const changeElements = document.querySelectorAll('.admin-stat-change');
+                changeElements.forEach(el => {
+                    if (el.textContent.includes('-')) {
+                        el.classList.add('negative');
+                        el.classList.remove('positive');
+                    } else {
+                        el.classList.add('positive');
+                        el.classList.remove('negative');
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                showNotification('Error loading statistics', 'error');
+            }
+        }
+        
+        // Load recent trades
+        async function loadRecentTrades() {
+            try {
+                // Fetch recent trades with limit=5
+                const trades = await fetchWithAuth('/trades?limit=5');
+                
+                const tableBody = document.getElementById('recent-trades-data');
+                tableBody.innerHTML = '';
+                
+                if (!trades || trades.error) {
+                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Unable to load recent trades</td></tr>';
+                    return;
+                }
+                
+                if (!trades.length) {
+                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No recent trades</td></tr>';
+                    return;
+                }
+                
+                trades.forEach(trade => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${trade.trade_id || trade.order_id}</td>
+                        <td>${trade.user_id}</td>
+                        <td>${trade.symbol}</td>
+                        <td style="color: ${trade.side === 'buy' ? '#4caf50' : '#f44336'}">${trade.side.toUpperCase()}</td>
+                        <td>${trade.quantity}</td>
+                        <td>${formatCurrency(trade.price)}</td>
+                        <td>${formatCurrency(trade.price * trade.quantity)}</td>
+                        <td>${formatDate(trade.timestamp)}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading recent trades:', error);
+                const tableBody = document.getElementById('recent-trades-data');
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Error loading recent trades</td></tr>';
+            }
+        }
+        
+        // Load top users
+        async function loadTopUsers() {
+            try {
+                // Fetch top users with limit=5
+                const accounts = await fetchWithAuth('/leaderboard?limit=5');
+                
+                const tableBody = document.getElementById('top-users-data');
+                tableBody.innerHTML = '';
+                
+                if (!accounts || accounts.error) {
+                    tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Unable to load top users</td></tr>';
+                    return;
+                }
+                
+                if (!accounts.length) {
+                    tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No user data available</td></tr>';
+                    return;
+                }
+                
+                accounts.forEach((account, index) => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${account.user_id}</td>
+                        <td>${formatCurrency(account.cash)}</td>
+                        <td style="color: ${(account.profit_loss || account.pnl || 0) >= 0 ? '#4caf50' : '#f44336'}">
+                            ${formatCurrency(account.profit_loss || account.pnl || 0)}
+                        </td>
+                        <td>${formatCurrency(account.networth || account.net_worth || 0)}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading top users:', error);
+                const tableBody = document.getElementById('top-users-data');
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center;">Error loading top users</td></tr>';
+            }
+        }
+        
+        // Load recent orders
+        async function loadRecentOrders() {
+            try {
+                // Fetch recent orders with limit=5
+                const orders = await fetchWithAuth('/orders/admin/pending?limit=5');
+                
+                const tableBody = document.getElementById('recent-orders-data');
+                tableBody.innerHTML = '';
+                
+                if (!orders || orders.error) {
+                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Unable to load recent orders</td></tr>';
+                    return;
+                }
+                
+                if (!orders.length) {
+                    tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No pending orders</td></tr>';
+                    return;
+                }
+                
+                orders.forEach(order => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${order.order_id}</td>
+                        <td>${order.user_id}</td>
+                        <td>${order.symbol}</td>
+                        <td>${order.order_type.toUpperCase()}</td>
+                        <td style="color: ${order.side === 'buy' ? '#4caf50' : '#f44336'}">${order.side.toUpperCase()}</td>
+                        <td>${order.quantity}</td>
+                        <td><span class="status-badge pending">PENDING</span></td>
+                        <td>${formatDate(order.timestamp)}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('Error loading recent orders:', error);
+                const tableBody = document.getElementById('recent-orders-data');
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center;">Error loading recent orders</td></tr>';
+            }
+        }
+    </script>
+</body>
+</html> 

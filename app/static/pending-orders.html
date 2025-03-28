@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Orders - Stock Market Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Stock Market Game</h1>
+        <nav>
+            <a href="stocks.html">Stocks</a>
+            <a href="orderbook.html">Orderbook</a>
+            <a href="orders.html">Place Orders</a>
+            <a href="pending-orders.html" class="active">Pending Orders</a>
+            <a href="cancel-orders.html">Cancel Orders</a>
+            <a href="trades.html">My Trades</a>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Pending Orders</h2>
+        
+        <div class="flex-container">
+            <div class="flex-child">
+                <label for="user-id">User ID:</label>
+                <input type="number" id="user-id" value="">
+            </div>
+            <div class="flex-child">
+                <button id="load-orders-btn">Load Orders</button>
+            </div>
+        </div>
+        
+        <div id="loading">Enter a user ID and click "Load Orders"</div>
+        
+        <div id="orders-container" style="display: none;">
+            <h3>Pending Orders</h3>
+            
+            <div id="no-orders" style="display: none;">
+                <p>No pending orders found for this user.</p>
+            </div>
+            
+            <table id="orders-table" style="display: none;">
+                <thead>
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Symbol</th>
+                        <th>Side</th>
+                        <th>Quantity</th>
+                        <th>Type</th>
+                        <th>Limit Price</th>
+                        <th>Created</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="orders-data">
+                    <!-- Order data will be inserted here -->
+                </tbody>
+            </table>
+            
+            <div style="margin-top: 20px;">
+                <button id="cancel-all-btn" style="display: none;">Cancel All Orders</button>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h3>Response</h3>
+                <pre id="response-data"></pre>
+            </div>
+        </div>
+    </main>
+
+    <script src="scripts.js"></script>
+    <script>
+        // Load data on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            setActiveLink();
+            
+            // Set up event listeners
+            document.getElementById('load-orders-btn').addEventListener('click', loadPendingOrders);
+            document.getElementById('cancel-all-btn').addEventListener('click', cancelAllOrders);
+            
+            // Load orders if user ID is in URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const userId = urlParams.get('user_id');
+            if (userId) {
+                document.getElementById('user-id').value = userId;
+                loadPendingOrders();
+            }
+            
+            // Enter key in user ID field triggers load
+            document.getElementById('user-id').addEventListener('keyup', function(e) {
+                if (e.key === 'Enter') {
+                    loadPendingOrders();
+                }
+            });
+        });
+
+        // Load pending orders for a user
+        async function loadPendingOrders() {
+            try {
+                const userId = document.getElementById('user-id').value;
+                
+                if (!userId) {
+                    document.getElementById('loading').textContent = 'Please enter a User ID';
+                    return;
+                }
+                
+                document.getElementById('loading').textContent = 'Loading pending orders...';
+                document.getElementById('loading').style.display = 'block';
+                document.getElementById('orders-container').style.display = 'none';
+                
+                const orders = await fetchAPI(`/orders/pending?user_id=${userId}`);
+                
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('orders-container').style.display = 'block';
+                
+                if (!orders || orders.length === 0) {
+                    document.getElementById('no-orders').style.display = 'block';
+                    document.getElementById('orders-table').style.display = 'none';
+                    document.getElementById('cancel-all-btn').style.display = 'none';
+                } else {
+                    document.getElementById('no-orders').style.display = 'none';
+                    document.getElementById('orders-table').style.display = 'table';
+                    document.getElementById('cancel-all-btn').style.display = 'inline-block';
+                    renderOrdersTable(orders);
+                }
+            } catch (error) {
+                document.getElementById('loading').textContent = `Error loading orders: ${error.message}`;
+                document.getElementById('orders-container').style.display = 'none';
+            }
+        }
+
+        // Render orders table
+        function renderOrdersTable(orders) {
+            const tableBody = document.getElementById('orders-data');
+            tableBody.innerHTML = '';
+            
+            orders.forEach(order => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${order.order_id}</td>
+                    <td>${order.symbol}</td>
+                    <td>${order.side.toUpperCase()}</td>
+                    <td>${order.quantity}</td>
+                    <td>${order.order_type}</td>
+                    <td>${order.limit_price ? formatCurrency(order.limit_price) : 'N/A'}</td>
+                    <td>${formatDate(order.timestamp)}</td>
+                    <td>
+                        <button class="cancel-btn" data-order-id="${order.order_id}">Cancel</button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Add event listeners to cancel buttons
+            document.querySelectorAll('.cancel-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const orderId = e.target.getAttribute('data-order-id');
+                    await cancelOrder(orderId);
+                });
+            });
+        }
+
+        // Cancel a single order
+        async function cancelOrder(orderId) {
+            try {
+                const userId = document.getElementById('user-id').value;
+                
+                document.getElementById('response-data').textContent = 'Cancelling order...';
+                
+                const result = await fetchAPI(`/orders/cancel?order_id=${orderId}&user_id=${userId}`, {
+                    method: 'DELETE'
+                });
+                
+                document.getElementById('response-data').textContent = JSON.stringify(result, null, 2);
+                
+                // Reload orders to update the list
+                await loadPendingOrders();
+            } catch (error) {
+                document.getElementById('response-data').textContent = `Error cancelling order: ${error.message}`;
+            }
+        }
+
+        // Cancel all pending orders
+        async function cancelAllOrders() {
+            try {
+                const userId = document.getElementById('user-id').value;
+                
+                if (!userId) {
+                    document.getElementById('response-data').textContent = 'Please enter a User ID';
+                    return;
+                }
+                
+                document.getElementById('response-data').textContent = 'Cancelling all pending orders...';
+                
+                const orders = await fetchAPI(`/orders/pending?user_id=${userId}`);
+                
+                if (!orders || orders.length === 0) {
+                    document.getElementById('response-data').textContent = 'No pending orders to cancel';
+                    return;
+                }
+                
+                let cancelResults = [];
+                
+                for (const order of orders) {
+                    try {
+                        const result = await fetchAPI(`/orders/cancel?order_id=${order.order_id}&user_id=${userId}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        cancelResults.push({
+                            order_id: order.order_id,
+                            success: true,
+                            message: result.message || 'Order cancelled'
+                        });
+                    } catch (error) {
+                        cancelResults.push({
+                            order_id: order.order_id,
+                            success: false,
+                            error: error.message
+                        });
+                    }
+                }
+                
+                document.getElementById('response-data').textContent = JSON.stringify({
+                    summary: `Cancelled ${cancelResults.filter(r => r.success).length} of ${orders.length} orders`,
+                    details: cancelResults
+                }, null, 2);
+                
+                // Reload orders to update the list
+                await loadPendingOrders();
+            } catch (error) {
+                document.getElementById('response-data').textContent = `Error cancelling orders: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 

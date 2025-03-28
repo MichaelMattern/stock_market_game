@@ -1,0 +1,684 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Management - Stock Market Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <div class="admin-sidebar">
+            <div class="admin-logo">Market Admin</div>
+            <ul class="admin-sidebar-nav">
+                <li><a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+                <li><a href="users.html" class="active"><i class="fas fa-users"></i> <span>User Management</span></a></li>
+                <li><a href="trades.html"><i class="fas fa-exchange-alt"></i> <span>Trade History</span></a></li>
+                <li><a href="orders.html"><i class="fas fa-clipboard-list"></i> <span>Orders</span></a></li>
+                <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Leaderboard</span></a></li>
+                <li><a href="system.html"><i class="fas fa-cogs"></i> <span>System</span></a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="admin-main">
+            <!-- Header -->
+            <div class="admin-header">
+                <h1 class="admin-title">User Management</h1>
+                <div class="admin-user-info">
+                    <span id="admin-name">Admin</span>
+                    <button id="logout-button" class="admin-button admin-button-warn">Logout</button>
+                </div>
+            </div>
+            
+            <!-- Create User Form -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Create New User</h2>
+                </div>
+                
+                <form id="create-user-form">
+                    <div class="admin-form-grid">
+                        <div class="admin-form-field">
+                            <label class="admin-label" for="user-id">User ID</label>
+                            <input class="admin-input" type="number" id="user-id" name="user-id" required>
+                        </div>
+                        <div class="admin-form-field">
+                            <label class="admin-label" for="user-password">Password</label>
+                            <input class="admin-input" type="password" id="user-password" name="user-password" required>
+                        </div>
+                        <div class="admin-form-field">
+                            <label class="admin-label" for="user-type">User Type</label>
+                            <select class="admin-select" id="user-type" name="user-type">
+                                <option value="regular">Regular User</option>
+                                <option value="admin">Admin User</option>
+                            </select>
+                        </div>
+                        <div class="admin-form-field">
+                            <label class="admin-label" for="initial-cash">Initial Cash</label>
+                            <input class="admin-input" type="number" id="initial-cash" name="initial-cash" value="10000">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="admin-button admin-button-primary">Create User</button>
+                </form>
+                
+                <div id="create-result" class="admin-alert" style="display: none;"></div>
+            </div>
+            
+            <!-- User Search and Filter -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">User Search</h2>
+                </div>
+                
+                <div class="admin-form-grid">
+                    <div class="admin-form-field">
+                        <label class="admin-label" for="search-user-id">User ID</label>
+                        <input class="admin-input" type="text" id="search-user-id" placeholder="Enter user ID">
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label" for="filter-type">Filter By Type</label>
+                        <select class="admin-select" id="filter-type">
+                            <option value="all">All Users</option>
+                            <option value="regular">Regular Users</option>
+                            <option value="admin">Admin Users</option>
+                        </select>
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label" for="sort-by">Sort By</label>
+                        <select class="admin-select" id="sort-by">
+                            <option value="id">User ID</option>
+                            <option value="cash">Cash</option>
+                            <option value="networth">Net Worth</option>
+                        </select>
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label" for="sort-order">Sort Order</label>
+                        <select class="admin-select" id="sort-order">
+                            <option value="asc">Ascending</option>
+                            <option value="desc">Descending</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button id="search-button" class="admin-button admin-button-primary">Search</button>
+            </div>
+            
+            <!-- User List -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">User List</h2>
+                    <button id="refresh-users" class="admin-button admin-button-primary">Refresh</button>
+                </div>
+                
+                <div id="users-loading">Loading users...</div>
+                
+                <table class="admin-table" id="users-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>User ID</th>
+                            <th>Type</th>
+                            <th>Cash</th>
+                            <th>Positions</th>
+                            <th>P/L</th>
+                            <th>Net Worth</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-data">
+                        <!-- User data will be inserted here -->
+                    </tbody>
+                </table>
+                
+                <div id="pagination-container" class="admin-pagination"></div>
+            </div>
+            
+            <!-- User Detail Modal -->
+            <div id="user-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); z-index: 1000;">
+                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background-color: white; padding: 20px; border-radius: 8px; width: 80%; max-width: 800px; max-height: 80vh; overflow-y: auto;">
+                    <h2 id="modal-title">User Details</h2>
+                    
+                    <div id="user-details">
+                        <div class="admin-form-grid">
+                            <div class="admin-form-field">
+                                <label class="admin-label">User ID</label>
+                                <div id="detail-user-id" class="admin-input"></div>
+                            </div>
+                            <div class="admin-form-field">
+                                <label class="admin-label">Type</label>
+                                <div id="detail-type" class="admin-input"></div>
+                            </div>
+                            <div class="admin-form-field">
+                                <label class="admin-label">Cash</label>
+                                <div id="detail-cash" class="admin-input"></div>
+                            </div>
+                            <div class="admin-form-field">
+                                <label class="admin-label">P/L</label>
+                                <div id="detail-pl" class="admin-input"></div>
+                            </div>
+                        </div>
+                        
+                        <h3>Open Positions</h3>
+                        <table class="admin-table" id="positions-table">
+                            <thead>
+                                <tr>
+                                    <th>Symbol</th>
+                                    <th>Quantity</th>
+                                    <th>Current Value</th>
+                                </tr>
+                            </thead>
+                            <tbody id="positions-data">
+                                <!-- Position data will be inserted here -->
+                            </tbody>
+                        </table>
+                        
+                        <h3>Recent Trades</h3>
+                        <table class="admin-table" id="user-trades-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Symbol</th>
+                                    <th>Side</th>
+                                    <th>Quantity</th>
+                                    <th>Price</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody id="user-trades-data">
+                                <!-- Trade data will be inserted here -->
+                            </tbody>
+                        </table>
+                        <div id="trades-pagination-container" class="admin-pagination"></div>
+                    </div>
+                    
+                    <div style="margin-top: 20px; display: flex; justify-content: space-between;">
+                        <div>
+                            <button id="reset-password-btn" class="admin-button admin-button-accent">Reset Password</button>
+                            <button id="reset-cash-btn" class="admin-button admin-button-accent">Reset Cash</button>
+                        </div>
+                        <button id="close-modal-btn" class="admin-button admin-button-primary">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="admin-scripts.js"></script>
+    <script>
+        // Global variables
+        let users = [];
+        let currentPage = 1;
+        let itemsPerPage = 10;
+        let totalPages = 1;
+        let userTrades = [];
+        let currentTradesPage = 1;
+        let tradesPerPage = 10;
+        let totalTradesPages = 1;
+        
+        // Initialize on document load
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Set admin name
+            const adminId = localStorage.getItem('adminId');
+            if (adminId) {
+                document.getElementById('admin-name').textContent = `Admin ${adminId}`;
+            }
+            
+            // Set up event listeners
+            document.getElementById('create-user-form').addEventListener('submit', createUser);
+            document.getElementById('search-button').addEventListener('click', searchUsers);
+            document.getElementById('refresh-users').addEventListener('click', loadUsers);
+            document.getElementById('close-modal-btn').addEventListener('click', closeUserModal);
+            document.getElementById('reset-password-btn').addEventListener('click', resetPassword);
+            document.getElementById('reset-cash-btn').addEventListener('click', resetCash);
+            
+            // Load initial user data
+            await loadUsers();
+        });
+        
+        // Load users with optional filters
+        async function loadUsers() {
+            const userId = document.getElementById('search-user-id').value;
+            const type = document.getElementById('filter-type').value;
+            const sortBy = document.getElementById('sort-by').value;
+            const sortOrder = document.getElementById('sort-order').value;
+            
+            // Show loading
+            document.getElementById('users-loading').style.display = 'block';
+            document.getElementById('users-table').style.display = 'none';
+            
+            try {
+                // In a real implementation, this would call the accounts API with filters
+                let endpoint = '/admin/accounts/';
+                if (userId) {
+                    endpoint = `/admin/accounts/${userId}`;
+                }
+                
+                // Fetch data
+                let fetchedUsers = await fetchWithAuth(endpoint);
+                
+                // If single user was fetched, convert to array
+                if (!Array.isArray(fetchedUsers)) {
+                    fetchedUsers = [fetchedUsers];
+                }
+                
+                // Apply filters
+                if (type !== 'all') {
+                    const isAdmin = type === 'admin';
+                    fetchedUsers = fetchedUsers.filter(user => user.is_admin === isAdmin);
+                }
+                
+                // Apply sorting
+                fetchedUsers.sort((a, b) => {
+                    let valA, valB;
+                    
+                    switch (sortBy) {
+                        case 'cash':
+                            valA = a.cash;
+                            valB = b.cash;
+                            break;
+                        case 'networth':
+                            valA = a.networth;
+                            valB = b.networth;
+                            break;
+                        default: // id
+                            valA = a.user_id;
+                            valB = b.user_id;
+                    }
+                    
+                    if (sortOrder === 'asc') {
+                        return valA - valB;
+                    } else {
+                        return valB - valA;
+                    }
+                });
+                
+                // Store users in global variable
+                users = fetchedUsers;
+                
+                // Calculate pagination
+                totalPages = Math.ceil(users.length / itemsPerPage);
+                if (currentPage > totalPages) {
+                    currentPage = 1;
+                }
+                
+                // Display users
+                displayUsers();
+            } catch (error) {
+                console.error('Error loading users:', error);
+                document.getElementById('users-loading').textContent = `Error loading users: ${error.message}`;
+            }
+        }
+        
+        // Display users with pagination
+        function displayUsers() {
+            const tableBody = document.getElementById('users-data');
+            tableBody.innerHTML = '';
+            
+            // Hide loading, show table
+            document.getElementById('users-loading').style.display = 'none';
+            document.getElementById('users-table').style.display = 'table';
+            
+            if (users.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 7;
+                cell.style.textAlign = 'center';
+                cell.textContent = 'No users found';
+                row.appendChild(cell);
+                tableBody.appendChild(row);
+                
+                // Hide pagination
+                document.getElementById('pagination-container').innerHTML = '';
+                return;
+            }
+            
+            // Calculate slice for current page
+            const startIndex = (currentPage - 1) * itemsPerPage;
+            const endIndex = Math.min(startIndex + itemsPerPage, users.length);
+            const currentUsers = users.slice(startIndex, endIndex);
+            
+            // Create rows for current page
+            currentUsers.forEach(user => {
+                const row = document.createElement('tr');
+                
+                // Count positions
+                const positionsCount = Object.keys(user.open_positions || {}).length;
+                
+                row.innerHTML = `
+                    <td>${user.user_id}</td>
+                    <td>${user.is_admin ? 'Admin' : 'Regular'}</td>
+                    <td>${formatCurrency(user.cash)}</td>
+                    <td>${positionsCount}</td>
+                    <td style="color: ${user.profit_loss >= 0 ? '#4caf50' : '#f44336'}">${formatCurrency(user.profit_loss)}</td>
+                    <td>${formatCurrency(user.networth)}</td>
+                    <td class="admin-table-actions">
+                        <button class="admin-button admin-button-primary view-user" data-id="${user.user_id}">View</button>
+                        <button class="admin-button admin-button-warn delete-user" data-id="${user.user_id}">Delete</button>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+            
+            // Add event listeners to action buttons
+            document.querySelectorAll('.view-user').forEach(btn => {
+                btn.addEventListener('click', () => viewUserDetails(btn.getAttribute('data-id')));
+            });
+            
+            document.querySelectorAll('.delete-user').forEach(btn => {
+                btn.addEventListener('click', () => deleteUser(btn.getAttribute('data-id')));
+            });
+            
+            // Create pagination
+            createPagination('pagination-container', currentPage, totalPages, (page) => {
+                currentPage = page;
+                displayUsers();
+            });
+        }
+        
+        // Create new user
+        async function createUser(event) {
+            event.preventDefault();
+            
+            const userId = document.getElementById('user-id').value;
+            const password = document.getElementById('user-password').value;
+            const userType = document.getElementById('user-type').value;
+            const initialCash = document.getElementById('initial-cash').value;
+            
+            const resultDiv = document.getElementById('create-result');
+            resultDiv.style.display = 'none';
+            
+            try {
+                // Determine endpoint based on user type
+                const endpoint = userType === 'admin' ? '/admin/accounts/admin/create' : '/admin/accounts/create';
+                
+                // Create user
+                const result = await fetchWithAuth(endpoint, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        user_id: parseInt(userId),
+                        password: password,
+                        initial_cash: parseFloat(initialCash),
+                        is_admin: userType === 'admin'
+                    })
+                });
+                
+                // Show success message
+                resultDiv.className = 'admin-alert admin-alert-success';
+                resultDiv.textContent = 'User created successfully!';
+                resultDiv.style.display = 'block';
+                
+                // Clear form
+                document.getElementById('user-id').value = '';
+                document.getElementById('user-password').value = '';
+                document.getElementById('user-type').value = 'regular';
+                document.getElementById('initial-cash').value = '10000';
+                
+                // Reload user list
+                await loadUsers();
+            } catch (error) {
+                console.error('Error creating user:', error);
+                resultDiv.className = 'admin-alert admin-alert-error';
+                resultDiv.textContent = `Error creating user: ${error.message}`;
+                resultDiv.style.display = 'block';
+            }
+        }
+        
+        // Search users
+        function searchUsers() {
+            // Reset to first page
+            currentPage = 1;
+            
+            // Load users with search criteria
+            loadUsers();
+        }
+        
+        // View user details
+        async function viewUserDetails(userId) {
+            try {
+                // Get user data
+                const user = await fetchWithAuth(`/admin/accounts/${userId}`);
+                
+                // Set user details in modal
+                document.getElementById('detail-user-id').textContent = user.user_id;
+                document.getElementById('detail-type').textContent = user.is_admin ? 'Admin' : 'Regular';
+                document.getElementById('detail-cash').textContent = formatCurrency(user.cash);
+                document.getElementById('detail-pl').textContent = formatCurrency(user.profit_loss);
+                
+                // Add positions to table
+                const positionsTable = document.getElementById('positions-data');
+                positionsTable.innerHTML = '';
+                
+                if (!user.open_positions || Object.keys(user.open_positions).length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 3;
+                    cell.style.textAlign = 'center';
+                    cell.textContent = 'No open positions';
+                    row.appendChild(cell);
+                    positionsTable.appendChild(row);
+                } else {
+                    try {
+                        // Get current stock prices
+                        const stocks = await fetchWithAuth('/stocks/');
+                        const stockPrices = {};
+                        stocks.forEach(stock => {
+                            stockPrices[stock.symbol] = stock.price;
+                        });
+                        
+                        // Create positions table
+                        for (const [symbol, quantity] of Object.entries(user.open_positions)) {
+                            const row = document.createElement('tr');
+                            const currentPrice = stockPrices[symbol] || 0;
+                            const currentValue = currentPrice * quantity;
+                            
+                            row.innerHTML = `
+                                <td>${symbol}</td>
+                                <td>${quantity}</td>
+                                <td>${formatCurrency(currentValue)}</td>
+                            `;
+                            
+                            positionsTable.appendChild(row);
+                        }
+                    } catch (error) {
+                        console.error('Error loading stock prices:', error);
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 3;
+                        cell.style.textAlign = 'center';
+                        cell.textContent = 'Error loading stock prices';
+                        row.appendChild(cell);
+                        positionsTable.appendChild(row);
+                    }
+                }
+                
+                try {
+                    // Get user trades
+                    userTrades = await fetchWithAuth(`/trades/admin/user/${userId}`);
+                    
+                    // Add trades to table
+                    const tradesTable = document.getElementById('user-trades-data');
+                    tradesTable.innerHTML = '';
+                    
+                    if (!userTrades || userTrades.length === 0) {
+                        const row = document.createElement('tr');
+                        const cell = document.createElement('td');
+                        cell.colSpan = 6;
+                        cell.style.textAlign = 'center';
+                        cell.textContent = 'No trade history';
+                        row.appendChild(cell);
+                        tradesTable.appendChild(row);
+                    } else {
+                        // Calculate pagination for trades
+                        totalTradesPages = Math.ceil(userTrades.length / tradesPerPage);
+                        if (currentTradesPage > totalTradesPages) {
+                            currentTradesPage = 1;
+                        }
+                        
+                        // Display trades for current page
+                        displayUserTrades();
+                    }
+                } catch (error) {
+                    console.error('Error loading trades:', error);
+                    const tradesTable = document.getElementById('user-trades-data');
+                    tradesTable.innerHTML = '';
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 6;
+                    cell.style.textAlign = 'center';
+                    cell.textContent = 'No trade history available';
+                    row.appendChild(cell);
+                    tradesTable.appendChild(row);
+                }
+                
+                // Show the modal
+                document.getElementById('user-modal').style.display = 'block';
+                document.getElementById('modal-title').textContent = `User Details: ${user.user_id}`;
+                
+                // Store user ID in reset buttons
+                document.getElementById('reset-password-btn').setAttribute('data-id', user.user_id);
+                document.getElementById('reset-cash-btn').setAttribute('data-id', user.user_id);
+            } catch (error) {
+                console.error('Error loading user details:', error);
+                showNotification(`Error loading user details: ${error.message}`, 'error');
+            }
+        }
+        
+        // Display user trades with pagination
+        function displayUserTrades() {
+            const tradesTable = document.getElementById('user-trades-data');
+            tradesTable.innerHTML = '';
+            
+            if (!userTrades || userTrades.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 6;
+                cell.style.textAlign = 'center';
+                cell.textContent = 'No trade history';
+                row.appendChild(cell);
+                tradesTable.appendChild(row);
+                return;
+            }
+            
+            // Calculate slice for current page
+            const startIndex = (currentTradesPage - 1) * tradesPerPage;
+            const endIndex = Math.min(startIndex + tradesPerPage, userTrades.length);
+            const currentTrades = userTrades.slice(startIndex, endIndex);
+            
+            // Create rows for current page
+            currentTrades.forEach(trade => {
+                const row = document.createElement('tr');
+                
+                row.innerHTML = `
+                    <td>${trade.order_id}</td>
+                    <td>${trade.symbol}</td>
+                    <td style="color: ${trade.side === 'buy' ? '#4caf50' : '#f44336'}">${trade.side.toUpperCase()}</td>
+                    <td>${trade.quantity}</td>
+                    <td>${formatCurrency(trade.price)}</td>
+                    <td>${formatDate(trade.timestamp)}</td>
+                `;
+                
+                tradesTable.appendChild(row);
+            });
+            
+            // Create pagination for trades
+            createPagination('trades-pagination-container', currentTradesPage, totalTradesPages, (page) => {
+                currentTradesPage = page;
+                displayUserTrades();
+            });
+        }
+        
+        // Close user modal
+        function closeUserModal() {
+            document.getElementById('user-modal').style.display = 'none';
+            currentTradesPage = 1; // Reset trades pagination
+        }
+        
+        // Reset user password
+        async function resetPassword() {
+            const userId = document.getElementById('reset-password-btn').getAttribute('data-id');
+            
+            if (!userId) return;
+            
+            // Prompt for new password
+            const newPassword = prompt('Enter new password:');
+            
+            if (!newPassword) return;
+            
+            try {
+                await fetchWithAuth(`/admin/accounts/${userId}/reset-password`, {
+                    method: 'POST',
+                    body: JSON.stringify({ password: newPassword })
+                });
+                
+                showNotification('Password reset successfully', 'success');
+            } catch (error) {
+                console.error('Error resetting password:', error);
+                showNotification(`Error resetting password: ${error.message}`, 'error');
+            }
+        }
+        
+        // Reset user cash
+        async function resetCash() {
+            const userId = document.getElementById('reset-cash-btn').getAttribute('data-id');
+            
+            if (!userId) return;
+            
+            // Prompt for new cash amount
+            const newCashStr = prompt('Enter new cash amount:', '10000');
+            
+            if (!newCashStr) return;
+            
+            const newCash = parseFloat(newCashStr);
+            
+            if (isNaN(newCash)) {
+                showNotification('Invalid cash amount', 'error');
+                return;
+            }
+            
+            try {
+                await fetchWithAuth(`/admin/accounts/${userId}/reset-cash`, {
+                    method: 'POST',
+                    body: JSON.stringify({ cash: newCash })
+                });
+                
+                showNotification('Cash reset successfully', 'success');
+                
+                // Refresh user details
+                viewUserDetails(userId);
+                
+                // Reload user list
+                await loadUsers();
+            } catch (error) {
+                console.error('Error resetting cash:', error);
+                showNotification(`Error resetting cash: ${error.message}`, 'error');
+            }
+        }
+        
+        // Delete user
+        async function deleteUser(userId) {
+            if (!confirm(`Are you sure you want to delete user ${userId}? This action cannot be undone.`)) {
+                return;
+            }
+            
+            try {
+                await fetchWithAuth(`/admin/accounts/${userId}`, {
+                    method: 'DELETE'
+                });
+                
+                showNotification('User deleted successfully', 'success');
+                
+                // Reload user list
+                await loadUsers();
+            } catch (error) {
+                console.error('Error deleting user:', error);
+                showNotification(`Error deleting user: ${error.message}`, 'error');
+            }
+        }
+    </script>
+</body>
+</html> 

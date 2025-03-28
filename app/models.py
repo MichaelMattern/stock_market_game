@@ -1,6 +1,7 @@
 # File: stock_market_game/app/models.py
-from sqlalchemy import Column, Integer, String, Float, JSON
+from sqlalchemy import Column, Integer, String, Float, JSON, Boolean, DateTime
 from app.database import Base
+from datetime import datetime
 
 class Account(Base):
     __tablename__ = "accounts"
@@ -10,6 +11,7 @@ class Account(Base):
     cash = Column(Float, default=10000.0)
     open_positions = Column(JSON, default={})  # e.g. {"HACK": 10, "AAPL": 5}
     profit_loss = Column(Float, default=0.0)
+    is_admin = Column(Boolean, default=False)  # Flag to identify admin accounts
 
 class Position(Base):
     __tablename__ = "positions"
@@ -40,4 +42,16 @@ class PendingOrder(Base):
     order_type = Column(String, nullable=False)  # "market" or "limit"
     limit_price = Column(Float, nullable=True)
     timestamp = Column(Integer, nullable=False)
+
+class StockHistory(Base):
+    __tablename__ = "historical_stock_data"
+
+    id = Column(Integer, primary_key=True, index=True)
+    symbol = Column(String, index=True, nullable=False)
+    timestamp = Column(DateTime, index=True, nullable=False)
+    price = Column(Float, nullable=False)
+    volume = Column(Float, nullable=False)
+    volatility = Column(Float, nullable=False)
+    liquidity = Column(Float, nullable=True)
+    interval = Column(String, nullable=False)  # Using interval instead of timeframe
 

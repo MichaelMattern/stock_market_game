@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Login - Stock Market Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="admin-styles.css">
+    <style>
+        body {
+            background-color: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        
+        .login-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            width: 380px;
+            max-width: 90%;
+        }
+        
+        .login-logo {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        
+        .login-logo h1 {
+            color: var(--admin-primary);
+            margin: 0;
+        }
+        
+        .login-form {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .login-form-field {
+            margin-bottom: 20px;
+        }
+        
+        .login-form-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .login-form-field input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        
+        .login-form-field input:focus {
+            outline: none;
+            border-color: var(--admin-primary);
+        }
+        
+        .login-button {
+            background-color: var(--admin-primary);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .login-button:hover {
+            background-color: var(--admin-primary-dark);
+        }
+        
+        .login-error {
+            background-color: #ffebee;
+            color: #c62828;
+            padding: 12px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <div class="login-logo">
+            <h1>Market Admin</h1>
+            <p>Stock Market Game Administration</p>
+        </div>
+        
+        <div id="login-error" class="login-error"></div>
+        
+        <form id="login-form" class="login-form">
+            <div class="login-form-field">
+                <label for="admin-id">Admin ID</label>
+                <input type="text" id="admin-id" name="admin-id" required>
+            </div>
+            
+            <div class="login-form-field">
+                <label for="api-key">API Key</label>
+                <input type="password" id="api-key" name="api-key" required>
+            </div>
+            
+            <button type="submit" class="login-button">Log In</button>
+        </form>
+    </div>
+    
+    <script>
+        // Define API_BASE_URL accounting for possible path prefix in Docker
+        const API_BASE_URL = window.location.protocol + '//' + window.location.host;
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Check if already logged in
+            const apiKey = localStorage.getItem('adminApiKey');
+            if (apiKey) {
+                window.location.href = 'dashboard.html';
+            }
+            
+            // Handle login form submission
+            const loginForm = document.getElementById('login-form');
+            const errorDisplay = document.getElementById('login-error');
+            
+            loginForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                
+                const adminId = document.getElementById('admin-id').value;
+                const apiKey = document.getElementById('api-key').value;
+                
+                if (!adminId || isNaN(parseInt(adminId))) {
+                    errorDisplay.textContent = "Please enter a valid Admin ID";
+                    errorDisplay.style.display = 'block';
+                    return;
+                }
+                
+                if (!apiKey) {
+                    errorDisplay.textContent = "Please enter an API Key";
+                    errorDisplay.style.display = 'block';
+                    return;
+                }
+                
+                // Hide any previous error
+                errorDisplay.style.display = 'none';
+                
+                // Build API URL
+                const apiPath = '/admin/accounts/verify';
+                const fullApiUrl = API_BASE_URL + apiPath;
+                
+                // Display debug information
+                console.log('Login attempt:', {
+                    adminId,
+                    apiKey: apiKey ? '[REDACTED]' : 'empty',
+                    baseUrl: API_BASE_URL,
+                    apiUrl: fullApiUrl,
+                    hostname: window.location.hostname,
+                    protocol: window.location.protocol,
+                    port: window.location.port
+                });
+                
+                try {
+                    // Try to make an authenticated request to verify credentials
+                    const response = await fetch(fullApiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'x-admin-api-key': apiKey
+                        },
+                        body: JSON.stringify({ admin_id: parseInt(adminId) })
+                    });
+                    
+                    console.log('Login response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const responseText = await response.text();
+                        console.error('Login error:', responseText);
+                        
+                        let errorMessage = 'Invalid credentials. Please try again.';
+                        try {
+                            const errorData = JSON.parse(responseText);
+                            errorMessage = errorData.detail || errorMessage;
+                        } catch (e) {
+                            // If not JSON, use the raw text
+                            if (responseText) {
+                                errorMessage = responseText;
+                            }
+                        }
+                        
+                        throw new Error(errorMessage);
+                    }
+                    
+                    // Store API key in local storage
+                    localStorage.setItem('adminApiKey', apiKey);
+                    localStorage.setItem('adminId', adminId);
+                    
+                    // Redirect to dashboard
+                    window.location.href = 'dashboard.html';
+                } catch (error) {
+                    // Display error message
+                    console.error('Login error:', error);
+                    errorDisplay.textContent = error.message;
+                    errorDisplay.style.display = 'block';
+                    
+                    // Clear API key field
+                    document.getElementById('api-key').value = '';
+                }
+            });
+        });
+    </script>
+</body>
+</html> 

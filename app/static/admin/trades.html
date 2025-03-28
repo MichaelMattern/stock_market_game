@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trade History - Admin Panel</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="admin-styles.css">
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar Navigation -->
+        <div class="admin-sidebar">
+            <div class="admin-logo">Market Admin</div>
+            <ul class="admin-sidebar-nav">
+                <li><a href="dashboard.html"><i class="fas fa-tachometer-alt"></i> <span>Dashboard</span></a></li>
+                <li><a href="users.html"><i class="fas fa-users"></i> <span>User Management</span></a></li>
+                <li><a href="trades.html" class="active"><i class="fas fa-exchange-alt"></i> <span>Trade History</span></a></li>
+                <li><a href="orders.html"><i class="fas fa-clipboard-list"></i> <span>Orders</span></a></li>
+                <li><a href="leaderboard.html"><i class="fas fa-trophy"></i> <span>Leaderboard</span></a></li>
+                <li><a href="system.html"><i class="fas fa-cogs"></i> <span>System</span></a></li>
+            </ul>
+        </div>
+        
+        <!-- Main Content Area -->
+        <div class="admin-main">
+            <!-- Header -->
+            <div class="admin-header">
+                <h1 class="admin-title">Trade History</h1>
+                <div class="admin-user-info">
+                    <span id="admin-name">Admin</span>
+                    <button id="logout-button" class="admin-button admin-button-warn">Logout</button>
+                </div>
+            </div>
+            
+            <!-- Filters -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Trade Filters</h2>
+                </div>
+                <div class="admin-form-grid">
+                    <div class="admin-form-field">
+                        <label class="admin-label">Symbol:</label>
+                        <input type="text" id="symbol-filter" class="admin-input" placeholder="All symbols">
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label">User ID:</label>
+                        <input type="text" id="user-filter" class="admin-input" placeholder="All users">
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label">Trade Side:</label>
+                        <select id="side-filter" class="admin-select">
+                            <option value="">All</option>
+                            <option value="buy">Buy</option>
+                            <option value="sell">Sell</option>
+                        </select>
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label">Limit:</label>
+                        <select id="limit-filter" class="admin-select">
+                            <option value="50">50 trades</option>
+                            <option value="100">100 trades</option>
+                            <option value="200">200 trades</option>
+                            <option value="500">500 trades</option>
+                        </select>
+                    </div>
+                    <div class="admin-form-field">
+                        <label class="admin-label">&nbsp;</label>
+                        <button id="apply-filters" class="admin-button admin-button-primary">Apply Filters</button>
+                        <button id="reset-filters" class="admin-button">Reset</button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Trade History Table -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">All Trades</h2>
+                    <button id="refresh-trades" class="admin-button admin-button-primary">Refresh</button>
+                </div>
+                
+                <table class="admin-table" id="trades-table">
+                    <thead>
+                        <tr>
+                            <th>Trade ID</th>
+                            <th>User ID</th>
+                            <th>Symbol</th>
+                            <th>Side</th>
+                            <th>Quantity</th>
+                            <th>Price</th>
+                            <th>Total Value</th>
+                            <th>Time</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trades-data">
+                        <tr>
+                            <td colspan="8" style="text-align: center;">Loading trades...</td>
+                        </tr>
+                    </tbody>
+                </table>
+                
+                <div id="pagination-container" class="admin-pagination"></div>
+            </div>
+            
+            <!-- Trade Statistics -->
+            <div class="admin-card">
+                <div class="admin-card-header">
+                    <h2 class="admin-card-title">Trade Statistics</h2>
+                </div>
+                <div class="admin-stats">
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Total Trades</h3>
+                        <div class="admin-stat-value" id="total-trades">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Trading Volume</h3>
+                        <div class="admin-stat-value" id="total-volume">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Most Active User</h3>
+                        <div class="admin-stat-value" id="most-active-user">-</div>
+                    </div>
+                    <div class="admin-stat-card">
+                        <h3 class="admin-stat-title">Most Traded Stock</h3>
+                        <div class="admin-stat-value" id="most-traded-stock">-</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="admin-scripts.js"></script>
+    <script>
+        // Variables
+        let allTrades = [];
+        let currentPage = 1;
+        const tradesPerPage = 20;
+        let filteredTrades = [];
+        
+        // DOM Elements
+        const tradesTable = document.getElementById('trades-table');
+        const tradesData = document.getElementById('trades-data');
+        const paginationContainer = document.getElementById('pagination-container');
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Set admin name
+            const adminId = localStorage.getItem('adminId');
+            if (adminId) {
+                document.getElementById('admin-name').textContent = `Admin ${adminId}`;
+            }
+            
+            // Load trades
+            loadAllTrades();
+            
+            // Add event listeners
+            document.getElementById('apply-filters').addEventListener('click', applyFilters);
+            document.getElementById('reset-filters').addEventListener('click', resetFilters);
+            document.getElementById('refresh-trades').addEventListener('click', loadAllTrades);
+        });
+        
+        // Load all trades
+        async function loadAllTrades() {
+            try {
+                // Show loading state
+                tradesData.innerHTML = '<tr><td colspan="8" style="text-align: center;">Loading trades...</td></tr>';
+                
+                // Fetch all trades
+                const trades = await fetchWithAuth('/trades/');
+                
+                // Store all trades
+                allTrades = trades;
+                
+                // Apply any active filters
+                applyFilters();
+                
+                // Update statistics
+                updateTradeStatistics(allTrades);
+            } catch (error) {
+                console.error('Error loading trades:', error);
+                tradesData.innerHTML = `<tr><td colspan="8" style="text-align: center;">Error loading trades: ${error.message}</td></tr>`;
+                showNotification('Error loading trades', 'error');
+            }
+        }
+        
+        // Apply filters
+        function applyFilters() {
+            const symbolFilter = document.getElementById('symbol-filter').value.toUpperCase();
+            const userFilter = document.getElementById('user-filter').value;
+            const sideFilter = document.getElementById('side-filter').value;
+            
+            // Filter trades
+            filteredTrades = allTrades.filter(trade => {
+                // Symbol filter
+                if (symbolFilter && trade.symbol !== symbolFilter) {
+                    return false;
+                }
+                
+                // User filter
+                if (userFilter && trade.user_id.toString() !== userFilter) {
+                    return false;
+                }
+                
+                // Side filter
+                if (sideFilter && trade.side !== sideFilter) {
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            // Reset to first page
+            currentPage = 1;
+            
+            // Display filtered trades
+            displayTrades();
+        }
+        
+        // Reset filters
+        function resetFilters() {
+            document.getElementById('symbol-filter').value = '';
+            document.getElementById('user-filter').value = '';
+            document.getElementById('side-filter').value = '';
+            
+            // Show all trades
+            filteredTrades = [...allTrades];
+            currentPage = 1;
+            displayTrades();
+        }
+        
+        // Display trades with pagination
+        function displayTrades() {
+            const startIndex = (currentPage - 1) * tradesPerPage;
+            const endIndex = startIndex + tradesPerPage;
+            const displayedTrades = filteredTrades.slice(startIndex, endIndex);
+            
+            // Clear table
+            tradesData.innerHTML = '';
+            
+            if (displayedTrades.length === 0) {
+                tradesData.innerHTML = '<tr><td colspan="8" style="text-align: center;">No trades found</td></tr>';
+                // Hide pagination
+                paginationContainer.innerHTML = '';
+                return;
+            }
+            
+            // Create rows for each trade
+            displayedTrades.forEach(trade => {
+                const row = document.createElement('tr');
+                
+                const total = trade.price * trade.quantity;
+                
+                row.innerHTML = `
+                    <td>${trade.order_id || trade.trade_id || '-'}</td>
+                    <td>${trade.user_id}</td>
+                    <td>${trade.symbol}</td>
+                    <td style="color: ${trade.side === 'buy' ? '#4caf50' : '#f44336'}">${trade.side.toUpperCase()}</td>
+                    <td>${trade.quantity}</td>
+                    <td>${formatCurrency(trade.price)}</td>
+                    <td>${formatCurrency(total)}</td>
+                    <td>${formatDate(trade.timestamp)}</td>
+                `;
+                
+                tradesData.appendChild(row);
+            });
+            
+            // Create pagination
+            const totalPages = Math.ceil(filteredTrades.length / tradesPerPage);
+            createPagination(paginationContainer.id, currentPage, totalPages, (page) => {
+                currentPage = page;
+                displayTrades();
+            });
+        }
+        
+        // Update trade statistics
+        function updateTradeStatistics(trades) {
+            // Total trades
+            document.getElementById('total-trades').textContent = formatNumber(trades.length);
+            
+            // Calculate total volume
+            const totalVolume = trades.reduce((sum, trade) => sum + (trade.price * trade.quantity), 0);
+            document.getElementById('total-volume').textContent = formatCurrency(totalVolume);
+            
+            // Most active user
+            const userCounts = {};
+            trades.forEach(trade => {
+                userCounts[trade.user_id] = (userCounts[trade.user_id] || 0) + 1;
+            });
+            
+            if (Object.keys(userCounts).length > 0) {
+                const mostActiveUser = Object.entries(userCounts)
+                    .sort((a, b) => b[1] - a[1])[0];
+                document.getElementById('most-active-user').textContent = 
+                    `User ${mostActiveUser[0]} (${mostActiveUser[1]} trades)`;
+            }
+            
+            // Most traded stock
+            const stockCounts = {};
+            trades.forEach(trade => {
+                stockCounts[trade.symbol] = (stockCounts[trade.symbol] || 0) + 1;
+            });
+            
+            if (Object.keys(stockCounts).length > 0) {
+                const mostTradedStock = Object.entries(stockCounts)
+                    .sort((a, b) => b[1] - a[1])[0];
+                document.getElementById('most-traded-stock').textContent = 
+                    `${mostTradedStock[0]} (${mostTradedStock[1]} trades)`;
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Place Orders - Stock Market Game</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Stock Market Game</h1>
+        <nav>
+            <a href="stocks.html">Stocks</a>
+            <a href="orderbook.html">Orderbook</a>
+            <a href="orders.html" class="active">Place Orders</a>
+            <a href="pending-orders.html">Pending Orders</a>
+            <a href="cancel-orders.html">Cancel Orders</a>
+            <a href="trades.html">My Trades</a>
+        </nav>
+    </header>
+
+    <main>
+        <h2>Place New Order</h2>
+        
+        <div class="flex-container">
+            <div class="flex-child">
+                <form id="order-form">
+                    <div>
+                        <label for="user-id">User ID:</label>
+                        <input type="number" id="user-id" required>
+                    </div>
+                    <div>
+                        <label for="symbol">Symbol:</label>
+                        <input type="text" id="symbol" value="HACK" required>
+                    </div>
+                    <div>
+                        <label for="side">Side:</label>
+                        <select id="side" required>
+                            <option value="buy">Buy</option>
+                            <option value="sell">Sell</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="quantity">Quantity:</label>
+                        <input type="number" id="quantity" step="0.01" min="0.01" required>
+                    </div>
+                    <div>
+                        <label for="order-type">Order Type:</label>
+                        <select id="order-type" onchange="toggleLimitPrice()" required>
+                            <option value="market">Market</option>
+                            <option value="limit">Limit</option>
+                        </select>
+                    </div>
+                    <div id="limit-price-container" style="display: none;">
+                        <label for="limit-price">Limit Price:</label>
+                        <input type="number" id="limit-price" step="0.01" min="0.01">
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button type="submit" id="place-order-btn">Place Order</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="flex-child">
+                <h3>Current Market Data</h3>
+                <div id="market-data-container">
+                    <div id="market-data-loading">Loading market data...</div>
+                    <div id="market-data" style="display: none;">
+                        <!-- Market data will be inserted here -->
+                    </div>
+                </div>
+                
+                <h3>Order Preview</h3>
+                <pre id="order-preview"></pre>
+                
+                <h3>Order Result</h3>
+                <pre id="order-result"></pre>
+            </div>
+        </div>
+    </main>
+
+    <script src="scripts.js"></script>
+    <script>
+        let currentStockData = null;
+        
+        // Load data and set up form on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            setActiveLink();
+            
+            // Load market data for the default symbol
+            await loadMarketData();
+            
+            // Set up event listeners
+            document.getElementById('order-form').addEventListener('submit', placeOrder);
+            document.getElementById('symbol').addEventListener('change', loadMarketData);
+            
+            // Setup preview updates
+            const formInputs = document.querySelectorAll('#order-form input, #order-form select');
+            formInputs.forEach(input => {
+                input.addEventListener('input', updateOrderPreview);
+            });
+            
+            // Update preview initially
+            updateOrderPreview();
+        });
+
+        // Toggle limit price input based on order type
+        function toggleLimitPrice() {
+            const orderType = document.getElementById('order-type').value;
+            const limitPriceContainer = document.getElementById('limit-price-container');
+            
+            if (orderType === 'limit') {
+                limitPriceContainer.style.display = 'block';
+                document.getElementById('limit-price').required = true;
+            } else {
+                limitPriceContainer.style.display = 'none';
+                document.getElementById('limit-price').required = false;
+            }
+            
+            updateOrderPreview();
+        }
+
+        // Load market data for the selected symbol
+        async function loadMarketData() {
+            try {
+                const symbol = document.getElementById('symbol').value.toUpperCase();
+                document.getElementById('market-data-loading').style.display = 'block';
+                document.getElementById('market-data').style.display = 'none';
+                
+                // Get stock data
+                const stocks = await fetchAPI('/stocks/');
+                const stock = stocks.find(s => s.symbol === symbol);
+                
+                if (!stock) {
+                    throw new Error(`No data available for symbol ${symbol}`);
+                }
+                
+                currentStockData = stock;
+                
+                // Get orderbook data
+                const orderbook = await fetchAPI(`/orderbook/?symbol=${symbol}`);
+                
+                // Display market data
+                const marketDataContainer = document.getElementById('market-data');
+                marketDataContainer.innerHTML = `
+                    <div><strong>Symbol:</strong> ${stock.symbol}</div>
+                    <div><strong>Current Price:</strong> ${formatCurrency(stock.price)}</div>
+                    <div><strong>Volume:</strong> ${formatNumber(stock.volume)}</div>
+                    <div><strong>Volatility:</strong> ${(stock.volatility * 100).toFixed(2)}%</div>
+                    <div><strong>Updated:</strong> ${formatDate(stock.timestamp)}</div>
+                    <div style="margin-top: 10px;"><strong>Best Bid:</strong> ${formatBestPrice(orderbook.buy_orders)}</div>
+                    <div><strong>Best Ask:</strong> ${formatBestPrice(orderbook.sell_orders)}</div>
+                `;
+                
+                document.getElementById('market-data-loading').style.display = 'none';
+                marketDataContainer.style.display = 'block';
+                
+                // Auto-fill limit price if it's empty
+                const limitPriceInput = document.getElementById('limit-price');
+                if (limitPriceInput.value === '') {
+                    limitPriceInput.value = stock.price.toFixed(2);
+                }
+                
+                updateOrderPreview();
+            } catch (error) {
+                document.getElementById('market-data-loading').textContent = `Error loading market data: ${error.message}`;
+            }
+        }
+
+        // Format best price from orderbook
+        function formatBestPrice(orderData) {
+            if (!orderData || !orderData.orders || orderData.orders.length === 0) {
+                return 'N/A';
+            }
+            
+            let price;
+            if (orderData === 'buy_orders') {
+                // For buy orders, get the highest price
+                price = Math.max(...orderData.orders.map(order => order.price));
+            } else {
+                // For sell orders, get the lowest price
+                price = Math.min(...orderData.orders.map(order => order.price));
+            }
+            
+            return formatCurrency(price);
+        }
+
+        // Update order preview
+        function updateOrderPreview() {
+            const userId = document.getElementById('user-id').value;
+            const symbol = document.getElementById('symbol').value;
+            const side = document.getElementById('side').value;
+            const quantity = document.getElementById('quantity').value;
+            const orderType = document.getElementById('order-type').value;
+            const limitPrice = document.getElementById('limit-price').value;
+            
+            const orderPreview = {
+                user_id: userId ? parseInt(userId) : null,
+                symbol: symbol.toUpperCase(),
+                side: side,
+                quantity: quantity ? parseFloat(quantity) : null,
+                order_type: orderType
+            };
+            
+            if (orderType === 'limit' && limitPrice) {
+                orderPreview.limit_price = parseFloat(limitPrice);
+            }
+            
+            // Calculate estimated cost/proceeds
+            if (currentStockData && orderPreview.quantity) {
+                const price = orderType === 'limit' ? 
+                    parseFloat(limitPrice) : 
+                    currentStockData.price;
+                
+                const total = price * orderPreview.quantity;
+                
+                if (side === 'buy') {
+                    orderPreview.estimated_cost = formatCurrency(total);
+                } else {
+                    orderPreview.estimated_proceeds = formatCurrency(total);
+                }
+            }
+            
+            document.getElementById('order-preview').textContent = JSON.stringify(orderPreview, null, 2);
+        }
+
+        // Place the order
+        async function placeOrder(e) {
+            e.preventDefault();
+            
+            try {
+                const userId = parseInt(document.getElementById('user-id').value);
+                const symbol = document.getElementById('symbol').value.toUpperCase();
+                const side = document.getElementById('side').value;
+                const quantity = parseFloat(document.getElementById('quantity').value);
+                const orderType = document.getElementById('order-type').value;
+                
+                const orderData = {
+                    user_id: userId,
+                    symbol: symbol,
+                    side: side,
+                    quantity: quantity,
+                    order_type: orderType
+                };
+                
+                if (orderType === 'limit') {
+                    orderData.limit_price = parseFloat(document.getElementById('limit-price').value);
+                }
+                
+                // Submit the order
+                const result = await fetchAPI('/orders/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(orderData)
+                });
+                
+                // Display result
+                document.getElementById('order-result').textContent = JSON.stringify(result, null, 2);
+                
+                // Optionally clear form or specific fields
+                if (result.executed) {
+                    document.getElementById('quantity').value = '';
+                    // Refresh market data
+                    await loadMarketData();
+                }
+            } catch (error) {
+                document.getElementById('order-result').textContent = `Error placing order: ${error.message}`;
+            }
+        }
+    </script>
+</body>
+</html> 

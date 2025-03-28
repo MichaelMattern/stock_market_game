@@ -46,3 +46,22 @@ def get_my_trades(
         return trades
     finally:
         session.close()
+
+@router.get("/admin/user/{user_id}", include_in_schema=False, response_model=List[TradeData], dependencies=[Depends(verify_admin)])
+def get_user_trades(
+    user_id: int,
+    symbol: Optional[str] = Query(None, description="Optional stock ticker symbol to filter trades")
+):
+    """
+    Admin endpoint to get trades for a specific user.
+    This endpoint is protected by an admin API key.
+    """
+    session: Session = SessionLocal()
+    try:
+        query = session.query(Trade).filter(Trade.user_id == user_id)
+        if symbol:
+            query = query.filter(Trade.symbol == symbol.upper())
+        trades = query.order_by(Trade.timestamp).all()
+        return trades
+    finally:
+        session.close()

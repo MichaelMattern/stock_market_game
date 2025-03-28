@@ -1,6 +1,6 @@
 # File: stock_market_game/app/schemas.py
 from pydantic import BaseModel
-from typing import Dict
+from typing import Dict, Optional
 
 class StockData(BaseModel):
     symbol: str
@@ -21,6 +21,7 @@ class AccountData(BaseModel):
     open_positions: Dict[str, float] = {}  # e.g., {"HACK": 10}
     profit_loss: float
     networth: float
+    is_admin: bool = False
 
     class Config:
         from_attributes = True  # For Pydantic v2; in v1 use orm_mode = True
@@ -28,6 +29,16 @@ class AccountData(BaseModel):
 class AccountCreate(BaseModel):
     user_id: int
     password: str
+    initial_cash: float = 10000.0
+
+    class Config:
+        from_attributes = True
+
+class AdminAccountCreate(BaseModel):
+    user_id: int
+    password: str
+    is_admin: bool = True
+    initial_cash: float = 10000.0
 
     class Config:
         from_attributes = True
@@ -66,3 +77,7 @@ class PendingOrderResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Admin verification schema
+class AdminVerify(BaseModel):
+    admin_id: int

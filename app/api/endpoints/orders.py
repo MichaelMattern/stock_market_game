@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.services.order_matching import process_order
-from app.dependencies import get_db, verify_user
+from app.dependencies import get_db, verify_user, verify_admin
 from app.models import PendingOrder
 from app.schemas import PendingOrderResponse
 
@@ -92,3 +92,29 @@ def cancel_limit_order(
     db.delete(order)
     db.commit()
     return {"message": f"Pending order {order_id} has been canceled."}
+
+@router.get("/admin/pending", include_in_schema=False, response_model=List[PendingOrderResponse], dependencies=[Depends(verify_admin)])
+def get_all_pending_orders(
+    symbol: Optional[str] = Query(None, description="Optional stock symbol to filter orders"),
+    user_id: Optional[int] = Query(None, description="Optional user ID to filter orders"),
+    side: Optional[str] = Query(None, description="Optional order side (buy/sell) to filter orders"),
+    order_type: Optional[str] = Query(None, description="Optional order type (market/limit) to filter orders"),
+    db: Session = Depends(get_db)
+):
+    """
+    Admin endpoint to get all pending orders with optional filtering.
+    This endpoint is protected by an admin API key.
+    """
+    query = db.query(PendingOrder)
+    
+    if symbol:
+        query = query.filter(PendingOrder.symbol == symbol.upper())
+    if user_id:
+        query = query.filter(PendingOrder.user_id == user_id)
+    if side:
+        query = query.filter(PendingOrder.side == side.lower())
+    if order_type:
+        query = query.filter(PendingOrder.order_type == order_type.lower())
+        
+    orders = query.order_by(PendingOrder.timestamp.desc()).all()
+    return orders

@@ -2,394 +2,1227 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Stock Market Game Frontend</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stock Market Game</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="admin/admin-styles.css">
   <style>
-    /* Overall page styling with dark background */
-    body { 
-      font-family: Arial, sans-serif; 
-      margin: 20px; 
-      background-color: #2c2c2c; /* Light black/dark grey background */
-      color: #e8f5e9; /* Light text for readability */
+    /* Additional custom styles for frontend */
+    :root {
+      --frontend-primary: #4caf50;
+      --frontend-primary-dark: #388e3c;
+      --frontend-accent: #ff9800;
     }
-    /* Navigation bar styling */
-    nav { 
-      margin-bottom: 20px; 
-      background-color: #424242; /* Darker grey for nav background */
-      padding: 10px;
-      border-radius: 5px;
+    
+    /* Override admin sidebar color */
+    .admin-sidebar {
+      background-color: var(--frontend-primary);
     }
-    nav button {
-      padding: 10px 15px;
-      margin-right: 5px;
-      background-color: #a5d6a7; /* Soft green */
-      border: none;
+    
+    .admin-logo {
+      background-color: var(--frontend-primary-dark);
+    }
+    
+    .admin-sidebar-nav a:hover,
+    .admin-sidebar-nav a.active {
+      border-left-color: var(--frontend-accent);
+    }
+    
+    /* Style for chart container */
+    .chart-container {
+      width: 100%;
+      height: 400px;
+      background-color: var(--admin-card);
       border-radius: 4px;
-      cursor: pointer;
-      color: #1b5e20;
-      font-weight: bold;
+      margin-top: 20px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
-    nav button:hover {
-      background-color: #81c784;
+    
+    /* Custom styling for pre tags */
+    pre {
+      background-color: #f5f5f5;
+      padding: 15px;
+      border-radius: 4px;
+      overflow: auto;
+      font-family: monospace;
+      font-size: 14px;
+      color: #333;
+      margin-top: 15px;
     }
-    /* Each section container styling */
-    .section { 
-      margin-bottom: 40px; 
-      padding: 20px; 
-      border: 2px solid #c8e6c9; /* Light green border */
-      border-radius: 8px;
-      background-color: #37474f; /* Dark container (light black tone) */
-      display: none; /* Hidden by default */
-    }
-    /* Flex container for side-by-side display */
-    .flex-container {
-      display: flex;
-      justify-content: space-between;
+    
+    /* Two column layout for certain sections */
+    .grid-2-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 20px;
     }
-    .flex-child {
-      flex: 1;
+    
+    @media (max-width: 768px) {
+      .grid-2-columns {
+        grid-template-columns: 1fr;
+      }
     }
-    /* Form elements styling */
-    input, button, select { 
-      padding: 8px; 
-      margin: 4px; 
-      border: 1px solid #a5d6a7; 
-      border-radius: 4px;
+
+    /* Login form styles */
+    .login-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
     }
-    /* Preformatted result area styling */
-    pre { 
-      background: #263238; /* Dark background for pre block */
-      padding: 10px; 
-      border: 1px solid #c8e6c9; 
-      border-radius: 4px; 
-      white-space: pre-wrap;
-      color: #e8f5e9;
+    
+    .login-form {
+      background-color: var(--admin-card);
+      padding: 30px;
+      border-radius: 8px;
+      width: 350px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+    
+    .login-form h2 {
+      margin-top: 0;
+      color: var(--frontend-primary);
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .auth-error {
+      color: #f44336;
+      margin-top: 10px;
+      font-size: 14px;
+      text-align: center;
     }
   </style>
 </head>
 <body>
-  <h1>Stock Market Game Frontend</h1>
-  
-  <!-- Navigation to switch between endpoint sections -->
-  <nav>
-    <button onclick="showSection('stocks-section')">Stocks</button>
-    <button onclick="showSection('create-account-section')">Create Account (Admin)</button>
-    <button onclick="showSection('get-account-section')">Get Account</button>
-    <button onclick="showSection('leaderboard-section')">Leaderboard</button>
-    <button onclick="showSection('orderbook-section')">Orderbook</button>
-    <button onclick="showSection('place-order-section')">Place Order</button>
-    <button onclick="showSection('trades-section')">Trade History</button>
-    <button onclick="showSection('admin-create-account-section')">Admin Create Account</button>
-    <button onclick="showSection('cancel-order-section'); loadOpenOrders()">Cancel Orders</button>
-  </nav>
+  <!-- Login Form (initially hidden) -->
+  <div id="login-container" class="login-container" style="display: none;">
+    <div class="login-form">
+      <h2>Login to Stock Market Game</h2>
+      <div class="admin-form-grid">
+        <div class="admin-form-field">
+          <label class="admin-label">User ID:</label>
+          <input type="number" id="login-userid" class="admin-input" placeholder="Enter your User ID" />
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">Password:</label>
+          <input type="password" id="login-password" class="admin-input" placeholder="Enter your password" />
+        </div>
+        <div class="admin-form-field">
+          <label class="admin-label">&nbsp;</label>
+          <button class="admin-button admin-button-primary" onclick="loginUser()">Login</button>
+        </div>
+      </div>
+      <div id="login-error" class="auth-error"></div>
+    </div>
+  </div>
+
+  <div class="admin-layout">
+    <!-- Sidebar Navigation -->
+    <div class="admin-sidebar">
+      <div class="admin-logo">Stock Market</div>
+      <ul class="admin-sidebar-nav">
+        <li><a href="#" onclick="showSection('stocks-section')" id="nav-stocks"><i class="fas fa-chart-line"></i> <span>Stocks</span></a></li>
+        <li><a href="#" onclick="showSection('stock-history-section')" id="nav-history"><i class="fas fa-history"></i> <span>Stock History</span></a></li>
+        <li><a href="#" onclick="showSection('get-account-section')" id="nav-get-account"><i class="fas fa-user"></i> <span>My Account</span></a></li>
+        <li><a href="#" onclick="showSection('leaderboard-section')" id="nav-leaderboard"><i class="fas fa-trophy"></i> <span>Leaderboard</span></a></li>
+        <li><a href="#" onclick="showSection('orderbook-section')" id="nav-orderbook"><i class="fas fa-book"></i> <span>Orderbook</span></a></li>
+        <li><a href="#" onclick="showSection('place-order-section')" id="nav-place-order"><i class="fas fa-plus-circle"></i> <span>Place Order</span></a></li>
+        <li><a href="#" onclick="showSection('open-orders-section')" id="nav-open-orders"><i class="fas fa-list"></i> <span>My Open Orders</span></a></li>
+        <li><a href="#" onclick="showSection('trades-section')" id="nav-trades"><i class="fas fa-exchange-alt"></i> <span>My Trades</span></a></li>
+      </ul>
+    </div>
+    
+    <!-- Main Content Area -->
+    <div class="admin-main">
+      <!-- Header -->
+      <div class="admin-header">
+        <h1 class="admin-title">Stock Market Game</h1>
+      </div>
 
   <!-- Stocks Section -->
-  <div class="section" id="stocks-section">
-    <h2>Stocks</h2>
-    <button onclick="getStocks()">Get Stocks</button>
+      <div class="section admin-card" id="stocks-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">Stocks</h2>
+          <button class="admin-button admin-button-primary" onclick="getStocks()">Refresh</button>
+        </div>
     <pre id="stocks-result"></pre>
   </div>
 
-  <!-- Create Account (Admin) Section -->
-  <div class="section" id="create-account-section">
-    <h2>Create User Account (Admin Only)</h2>
-    <label>User ID:</label>
-    <input type="number" id="create-account-userid" /><br>
-    <label>Password:</label>
-    <input type="text" id="create-account-password" /><br>
-    <label>Admin API Key:</label>
-    <input type="text" id="create-account-admin-key" value="my-secret-admin-key" /><br>
-    <button onclick="createAccount()">Create Account</button>
-    <pre id="create-account-result"></pre>
+      <!-- Stock History Section -->
+      <div class="section admin-card" id="stock-history-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">Stock Price History</h2>
+        </div>
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label class="admin-label">Symbol:</label>
+            <input type="text" id="history-symbol" value="HACK" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">Timeframe:</label>
+            <select id="history-timeframe" class="admin-select">
+              <option value="1m">1 Minute</option>
+              <option value="5m" selected>5 Minutes</option>
+              <option value="15m">15 Minutes</option>
+              <option value="30m">30 Minutes</option>
+              <option value="1h">1 Hour</option>
+            </select>
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">Limit:</label>
+            <input type="number" id="history-limit" value="50" min="1" max="500" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">&nbsp;</label>
+            <button class="admin-button admin-button-primary" onclick="getStockHistory()">Get History</button>
+          </div>
+        </div>
+        <div id="history-chart" class="chart-container"></div>
+        <pre id="history-result"></pre>
   </div>
 
   <!-- Get Account Details Section -->
-  <div class="section" id="get-account-section">
-    <h2>Get Account Details</h2>
-    <label>User ID:</label>
-    <input type="number" id="get-account-userid" /><br>
-    <button onclick="getAccount()">Get Account</button>
+      <div class="section admin-card" id="get-account-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">My Account Details</h2>
+        </div>
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label class="admin-label">User ID:</label>
+            <input type="number" id="get-account-userid" class="admin-input" readonly />
+            <div class="admin-label-help">For security reasons, you can only view your own account</div>
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">&nbsp;</label>
+            <button class="admin-button admin-button-primary" onclick="getAccount()">Get Account</button>
+          </div>
+        </div>
     <pre id="get-account-result"></pre>
   </div>
 
   <!-- Leaderboard Section -->
-  <div class="section" id="leaderboard-section">
-    <h2>Leaderboard</h2>
-    <button onclick="getLeaderboard()">Get Leaderboard</button>
+      <div class="section admin-card" id="leaderboard-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">Leaderboard</h2>
+          <button class="admin-button admin-button-primary" onclick="getLeaderboard()">Refresh</button>
+        </div>
     <pre id="leaderboard-result"></pre>
   </div>
 
   <!-- Orderbook Section -->
-  <div class="section" id="orderbook-section">
-    <h2>Orderbook</h2>
-    <label>Symbol:</label>
-    <input type="text" id="orderbook-symbol" value="HACK" /><br>
-    <button onclick="getOrderbook()">Get Orderbook</button>
-    <div class="flex-container">
-      <div class="flex-child">
-        <h3>Buy Orders</h3>
-        <pre id="buy-orders-result"></pre>
+      <div class="section admin-card" id="orderbook-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">Orderbook</h2>
+          <button class="admin-button admin-button-primary" onclick="getOrderbook()">Get Orderbook</button>
+        </div>
+        <div class="grid-2-columns">
+          <div>
+            <h3>Buy Orders</h3>
+            <pre id="buy-orders-result"></pre>
+          </div>
+          <div>
+            <h3>Sell Orders</h3>
+            <pre id="sell-orders-result"></pre>
+          </div>
+        </div>
       </div>
-      <div class="flex-child">
-        <h3>Sell Orders</h3>
-        <pre id="sell-orders-result"></pre>
+
+  <!-- Place Order Section -->
+      <div class="section admin-card" id="place-order-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">Place Order</h2>
+        </div>
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label class="admin-label">User ID:</label>
+            <input type="number" id="order-userid" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">Symbol:</label>
+            <input type="text" id="order-symbol" value="HACK" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">Side:</label>
+            <select id="order-side" class="admin-select">
+              <option value="buy">Buy</option>
+              <option value="sell">Sell</option>
+            </select>
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">Quantity:</label>
+            <input type="number" id="order-quantity" step="0.01" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">Order Type:</label>
+            <select id="order-type" class="admin-select">
+      <option value="market">Market</option>
+      <option value="limit">Limit</option>
+            </select>
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">Limit Price:</label>
+            <input type="number" id="order-limit-price" step="0.01" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">&nbsp;</label>
+            <button class="admin-button admin-button-primary" onclick="placeOrder()">Place Order</button>
+          </div>
+        </div>
+    <pre id="order-result"></pre>
+  </div>
+
+      <!-- Open Orders Section -->
+      <div class="section admin-card" id="open-orders-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">My Open Orders</h2>
+          <button class="admin-button admin-button-primary" onclick="getOpenOrders()">Refresh</button>
+        </div>
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label class="admin-label">User ID:</label>
+            <input type="number" id="open-orders-userid" class="admin-input" readonly />
+          </div>
+        </div>
+        <pre id="open-orders-result"></pre>
+      </div>
+
+      <!-- My Trades Section -->
+      <div class="section admin-card" id="trades-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">My Trade History</h2>
+        </div>
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label class="admin-label">User ID:</label>
+            <input type="number" id="trades-userid" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">&nbsp;</label>
+            <button class="admin-button admin-button-primary" onclick="getMyTrades()">Get My Trades</button>
+          </div>
+        </div>
+    <pre id="trades-result"></pre>
+  </div>
+
+      <!-- Cancel Orders Section -->
+      <div class="section admin-card" id="cancel-order-section">
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">Cancel Orders</h2>
+        </div>
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label class="admin-label">User ID:</label>
+            <input type="number" id="cancel-userid" value="1000" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">&nbsp;</label>
+            <button class="admin-button admin-button-primary" onclick="loadOpenOrders()">Load Open Orders</button>
+          </div>
+  </div>
+    <pre id="open-orders-result"></pre>
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label class="admin-label">Order ID:</label>
+            <input type="text" id="cancel-orderid" placeholder="Enter Order ID" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">&nbsp;</label>
+            <button class="admin-button admin-button-warn" onclick="cancelOrder()">Cancel Order</button>
+            <button class="admin-button admin-button-warn" onclick="cancelAllOrders()">Cancel All Orders</button>
+          </div>
+        </div>
+    <pre id="cancel-order-result"></pre>
       </div>
     </div>
   </div>
 
-  <!-- Place Order Section -->
-  <div class="section" id="place-order-section">
-    <h2>Place Order</h2>
-    <label>User ID:</label>
-    <input type="number" id="order-userid" /><br>
-    <label>Symbol:</label>
-    <input type="text" id="order-symbol" value="HACK" /><br>
-    <label>Side (buy/sell):</label>
-    <input type="text" id="order-side" placeholder="buy or sell" /><br>
-    <label>Quantity:</label>
-    <input type="number" id="order-quantity" step="0.01" /><br>
-    <label>Order Type:</label>
-    <select id="order-type">
-      <option value="market">Market</option>
-      <option value="limit">Limit</option>
-    </select><br>
-    <label>Limit Price (if applicable):</label>
-    <input type="number" id="order-limit-price" step="0.01" /><br>
-    <button onclick="placeOrder()">Place Order</button>
-    <pre id="order-result"></pre>
-  </div>
-
-  <!-- Trades Section -->
-  <div class="section" id="trades-section">
-    <h2>Trade History</h2>
-    <label>Symbol:</label>
-    <input type="text" id="trades-symbol" value="HACK" /><br>
-    <button onclick="getTrades()">Get Trades</button>
-    <pre id="trades-result"></pre>
-  </div>
-
-  <!-- Admin Create Account Section -->
-  <div class="section" id="admin-create-account-section">
-    <h2>Create Admin Account</h2>
-    <label>User ID:</label>
-    <input type="number" id="admin-account-userid" /><br>
-    <label>Password:</label>
-    <input type="text" id="admin-account-password" /><br>
-    <label>Admin API Key:</label>
-    <input type="text" id="admin-account-admin-key" value="my-secret-admin-key" /><br>
-    <button onclick="createAdminAccount()">Create Admin Account</button>
-    <pre id="admin-account-result"></pre>
-  </div>
-  
-  <!-- Cancel Orders Section -->
-  <div class="section" id="cancel-order-section">
-    <h2>Cancel Orders</h2>
-    <label>User ID:</label>
-    <input type="number" id="cancel-userid" value="1000" /><br>
-    <button onclick="loadOpenOrders()">Load Open Orders</button>
-    <pre id="open-orders-result"></pre>
-    <label>Order ID (for single cancel):</label>
-    <input type="text" id="cancel-orderid" placeholder="Enter Order ID" /><br>
-    <button onclick="cancelOrder()">Cancel Order</button>
-    <button onclick="cancelAllOrders()">Cancel All Orders</button>
-    <pre id="cancel-order-result"></pre>
-  </div>
+  <!-- Include Chart.js for stock history visualization -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <script>
-    const BASE_URL = "http://localhost:8000";
+    const BASE_URL = window.location.origin;
+    let stockHistoryChart = null;
+    let currentUserId = null; // Store current user ID
 
     // Function to hide all sections and show only the selected one
     function showSection(sectionId) {
+      // Hide all sections
       const sections = document.querySelectorAll('.section');
       sections.forEach(section => {
         section.style.display = 'none';
       });
+      
+      // Show selected section
       const activeSection = document.getElementById(sectionId);
       if (activeSection) {
         activeSection.style.display = 'block';
       }
+      
+      // Update navigation active state
+      document.querySelectorAll('.admin-sidebar-nav a').forEach(link => {
+        link.classList.remove('active');
+      });
+      
+      // Set active navigation
+      const navId = 'nav-' + sectionId.replace('-section', '');
+      const navElement = document.getElementById(navId);
+      if (navElement) {
+        navElement.classList.add('active');
+      }
+      
+      // Auto-load data for the active section
+      if (sectionId === 'stocks-section') {
+        getStocks();
+      } else if (sectionId === 'leaderboard-section') {
+        getLeaderboard();
+      } else if (currentUserId && sectionId === 'trades-section') {
+        document.getElementById("trades-userid").value = currentUserId;
+        getMyTrades();
+      } else if (currentUserId && sectionId === 'cancel-order-section') {
+        document.getElementById("cancel-userid").value = currentUserId;
+        loadOpenOrders();
+      } else if (currentUserId && sectionId === 'open-orders-section') {
+        document.getElementById("open-orders-userid").value = currentUserId;
+        getOpenOrders();
+      }
     }
     
-    // Display the first section by default (Stocks)
-    showSection('stocks-section');
+    // Display the first section by default (Stocks) and setup page
+    document.addEventListener('DOMContentLoaded', () => {
+      // Check for stored user ID
+      const storedUserId = localStorage.getItem('userId');
+      if (storedUserId) {
+        currentUserId = parseInt(storedUserId); // Ensure it's an integer
+        // Set user ID in relevant fields
+        document.getElementById("get-account-userid").value = currentUserId;
+        document.getElementById("order-userid").value = currentUserId;
+        document.getElementById("trades-userid").value = currentUserId;
+        document.getElementById("cancel-userid").value = currentUserId;
+        document.getElementById("open-orders-userid").value = currentUserId;
+        
+        // Auto-fetch account details
+        getAccount();
+      } else {
+        // User is not logged in, show message in account section
+        const resultElement = document.getElementById("get-account-result");
+        resultElement.textContent = "You need to login first. Click the Login button in the top right corner.";
+        resultElement.style.color = '#f44336';
+      }
+      
+      // Add a login indicator to the page
+      updateLoginStatus();
+      
+      // Show stocks section as default
+      showSection('stocks-section');
+    });
+    
+    // Login User
+    async function loginUser() {
+      const userId = document.getElementById("login-userid").value;
+      const password = document.getElementById("login-password").value;
+      const errorElement = document.getElementById("login-error");
+      
+      if (!userId || isNaN(parseInt(userId))) {
+        errorElement.textContent = "Please enter a valid User ID";
+        return;
+      }
+      
+      if (!password) {
+        errorElement.textContent = "Please enter a password";
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${BASE_URL}/accounts/authenticate`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            user_id: userId,
+            password: password
+          })
+        });
 
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Authentication failed');
+        }
+
+        const data = await response.json();
+        
+        // Save the user ID and update UI
+        saveCurrentUser(userId);
+        
+        // Hide login form
+        document.getElementById("login-container").style.display = "none";
+        errorElement.textContent = "";
+        
+        // Auto-fetch account details
+        try {
+          await getAccount();
+        } catch (accError) {
+          console.error("Error getting account details:", accError);
+        }
+      } catch (error) {
+        console.error("Login error:", error);
+        errorElement.textContent = error.message || "Authentication failed. Please try again.";
+        
+        // Clear the currently set user since authentication failed
+        currentUserId = null;
+        localStorage.removeItem('userId');
+        updateLoginStatus();
+      }
+    }
+    
+    // Update login status indicator
+    function updateLoginStatus() {
+      // Create login status display if it doesn't exist
+      let statusElement = document.getElementById('login-status');
+      if (!statusElement) {
+        statusElement = document.createElement('div');
+        statusElement.id = 'login-status';
+        statusElement.style.position = 'fixed';
+        statusElement.style.top = '10px';
+        statusElement.style.right = '20px';
+        statusElement.style.padding = '8px 15px';
+        statusElement.style.borderRadius = '4px';
+        statusElement.style.fontSize = '14px';
+        statusElement.style.fontWeight = 'bold';
+        statusElement.style.zIndex = '1000';
+        document.body.appendChild(statusElement);
+      }
+      
+      // Update login status
+      if (currentUserId) {
+        statusElement.textContent = `Logged in as User ${currentUserId}`;
+        statusElement.style.backgroundColor = '#4caf50';
+        statusElement.style.color = 'white';
+        
+        // Add logout button if not already present
+        if (!document.getElementById('logout-button')) {
+          const logoutBtn = document.createElement('button');
+          logoutBtn.id = 'logout-button';
+          logoutBtn.textContent = 'Logout';
+          logoutBtn.className = 'admin-button admin-button-warn';
+          logoutBtn.style.marginLeft = '10px';
+          logoutBtn.addEventListener('click', logoutUser);
+          statusElement.appendChild(logoutBtn);
+        }
+      } else {
+        statusElement.textContent = 'Not logged in';
+        statusElement.style.backgroundColor = '#f44336';
+        statusElement.style.color = 'white';
+        
+        // Add login button if not already present
+        if (!document.getElementById('login-button')) {
+          const loginBtn = document.createElement('button');
+          loginBtn.id = 'login-button';
+          loginBtn.textContent = 'Login';
+          loginBtn.className = 'admin-button admin-button-primary';
+          loginBtn.style.marginLeft = '10px';
+          loginBtn.addEventListener('click', showLoginForm);
+          statusElement.appendChild(loginBtn);
+        }
+      }
+    }
+    
+    // Show login form
+    function showLoginForm() {
+      document.getElementById("login-container").style.display = "flex";
+    }
+    
+    // Logout user
+    function logoutUser() {
+      // Clear user data
+      currentUserId = null;
+      localStorage.removeItem('userId');
+      
+      // Reset form fields
+      document.getElementById("get-account-userid").value = '';
+      document.getElementById("order-userid").value = '';
+      document.getElementById("trades-userid").value = '';
+      document.getElementById("cancel-userid").value = '';
+      document.getElementById("open-orders-userid").value = '';
+      
+      // Clear account data display
+      document.getElementById("get-account-result").textContent = "You need to login first. To authenticate yourself, enter your User ID in any form and perform an action.";
+      document.getElementById("get-account-result").style.color = '#f44336';
+      
+      // Update login status
+      updateLoginStatus();
+      
+      // Show notification
+      alert('You have been logged out');
+    }
+        
+    // Save current user ID and update UI
+    function saveCurrentUser(userId) {
+      currentUserId = parseInt(userId); // Ensure it's an integer
+      localStorage.setItem('userId', currentUserId.toString());
+      
+      // Update user IDs in all forms
+      document.getElementById("get-account-userid").value = currentUserId;
+      document.getElementById("order-userid").value = currentUserId;
+      document.getElementById("trades-userid").value = currentUserId;
+      document.getElementById("cancel-userid").value = currentUserId;
+      document.getElementById("open-orders-userid").value = currentUserId;
+      
+      // Update login status indicator
+      updateLoginStatus();
+      
+      // Auto-fetch account details
+      getAccount();
+    }
+
+    // Add login form to the page
+    function addLoginForm() {
+      const loginForm = document.createElement('div');
+      loginForm.id = 'login-form';
+      loginForm.className = 'admin-card';
+      loginForm.style.position = 'fixed';
+      loginForm.style.top = '50%';
+      loginForm.style.left = '50%';
+      loginForm.style.transform = 'translate(-50%, -50%)';
+      loginForm.style.zIndex = '1000';
+      loginForm.style.display = 'none';
+      loginForm.innerHTML = `
+        <div class="admin-card-header">
+          <h2 class="admin-card-title">Login</h2>
+        </div>
+        <div class="admin-form-grid">
+          <div class="admin-form-field">
+            <label class="admin-label">User ID:</label>
+            <input type="number" id="login-userid" class="admin-input" />
+          </div>
+          <div class="admin-form-field">
+            <label class="admin-label">&nbsp;</label>
+            <button class="admin-button admin-button-primary" onclick="login()">Login</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(loginForm);
+    }
+
+    // Hide login form
+    function hideLoginForm() {
+      document.getElementById('login-form').style.display = 'none';
+    }
+
+    // Login user
+    function login() {
+      const userId = document.getElementById('login-userid').value;
+      if (!userId) {
+        alert('Please enter a User ID');
+        return;
+      }
+      saveCurrentUser(userId);
+      hideLoginForm();
+    }
+
+    // Helper function for API requests with error handling
+    async function apiRequest(url, options = {}) {
+      try {
+        // Add basic headers if not provided
+        if (!options.headers) {
+          options.headers = {
+            'Content-Type': 'application/json'
+          };
+        }
+        
+        // Add authentication if user ID is available
+        if (currentUserId) {
+          // Always use the pattern password for authentication
+          const password = `password${currentUserId}`;
+          options.headers['Authorization'] = 'Basic ' + btoa(`${currentUserId}:${password}`);
+          options.headers['X-User-ID'] = currentUserId.toString();
+        }
+        
+        // Ensure URL is properly formatted using absolute URL
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          if (!url.startsWith('/')) {
+            url = '/' + url;
+          }
+          url = BASE_URL + url;
+        }
+        
+        // Log request but hide sensitive info
+        const logOptions = { 
+          ...options,
+          headers: { ...options.headers }
+        };
+        
+        if (logOptions.headers['Authorization']) {
+          logOptions.headers['Authorization'] = '[REDACTED]';
+        }
+        
+        console.log(`Fetching ${url} with options:`, logOptions);
+        const response = await fetch(url, options);
+        
+        console.log(`Response status: ${response.status}`);
+        
+        if (!response.ok) {
+          // Try to parse error response
+          const errorText = await response.text();
+          let errorMessage;
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.detail || errorJson.message || `Error: ${response.status} ${response.statusText}`;
+          } catch {
+            errorMessage = `Error: ${response.status} ${response.statusText}\n${errorText}`;
+          }
+          
+          // For authentication errors, provide a more helpful message
+          if (response.status === 401 || response.status === 403) {
+            errorMessage = `Authentication failed: ${errorMessage}. Please try logging in again.`;
+            // Clear user state on authentication failure
+            currentUserId = null;
+            localStorage.removeItem('userId');
+            updateLoginStatus();
+          }
+          
+          throw new Error(errorMessage);
+        }
+        
+        const responseText = await response.text();
+        
+        // If the response is empty, return an empty object
+        if (!responseText.trim()) {
+          return {};
+        }
+        
+        // Try to parse the response as JSON
+        try {
+          return JSON.parse(responseText);
+        } catch (e) {
+          console.warn("Response is not valid JSON:", e);
+          return { message: responseText || "Operation completed successfully" };
+        }
+      } catch (error) {
+        console.error(`API request failed for ${url}:`, error);
+        
+        // Handle auth errors - log out the user after a delay
+        if (error.message && (
+            error.message.includes("401") || 
+            error.message.includes("403") ||
+            error.message.includes("unauthorized") || 
+            error.message.includes("Unauthorized") ||
+            error.message.includes("Authentication failed"))) {
+          console.error("Authentication error detected, will log out user");
+          setTimeout(() => {
+            if (currentUserId) {
+              logoutUser();
+            }
+          }, 3000);
+        }
+        
+        throw error;
+      }
+    }
+    
+    // Format display of error messages
+    function displayError(elementId, error) {
+      const element = document.getElementById(elementId);
+      element.textContent = error.message || error.toString();
+      element.style.color = '#f44336';
+    }
+    
     // Stocks endpoint
     async function getStocks() {
       try {
-        const response = await fetch(`${BASE_URL}/stocks/`);
-        const data = await response.json();
-        document.getElementById("stocks-result").textContent = JSON.stringify(data, null, 2);
+        const data = await apiRequest(`${BASE_URL}/stocks/`);
+        const resultElement = document.getElementById("stocks-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
       } catch (error) {
-        document.getElementById("stocks-result").textContent = error;
+        displayError("stocks-result", error);
       }
     }
 
-    // Create account (Admin)
-    async function createAccount() {
-      const userId = document.getElementById("create-account-userid").value;
-      const password = document.getElementById("create-account-password").value;
-      const adminKey = document.getElementById("create-account-admin-key").value;
+    // Stock History endpoint
+    async function getStockHistory() {
+      const symbol = document.getElementById("history-symbol").value;
+      const timeframe = document.getElementById("history-timeframe").value;
+      const limit = document.getElementById("history-limit").value;
+      
       try {
-        const response = await fetch(`${BASE_URL}/accounts/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-admin-api-key": adminKey
-          },
-          body: JSON.stringify({ user_id: parseInt(userId), password })
-        });
-        const data = await response.json();
-        document.getElementById("create-account-result").textContent = JSON.stringify(data, null, 2);
+        const data = await apiRequest(`${BASE_URL}/stocks/${symbol}/history?timeframe=${timeframe}&limit=${limit}`);
+        const resultElement = document.getElementById("history-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+        
+        // Create or update chart
+        renderHistoryChart(data);
       } catch (error) {
-        document.getElementById("create-account-result").textContent = error;
+        displayError("history-result", error);
       }
+    }
+    
+    // Render history chart
+    function renderHistoryChart(data) {
+      // Format data for Chart.js
+      const labels = data.map(item => {
+        const date = new Date(item.timestamp * 1000);
+        return date.toLocaleTimeString();
+      });
+      const prices = data.map(item => item.price);
+      
+      // Destroy existing chart if it exists
+      if (stockHistoryChart) {
+        stockHistoryChart.destroy();
+      }
+      
+      // Create new chart
+      const ctx = document.getElementById('history-chart');
+      stockHistoryChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: `${data[0]?.symbol || ''} Price`,
+            data: prices,
+            borderColor: '#4caf50',
+            backgroundColor: 'rgba(76, 175, 80, 0.2)',
+            borderWidth: 2,
+            tension: 0.1,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: {
+              reverse: true
+            }
+          }
+        }
+      });
     }
 
     // Get account details
     async function getAccount() {
-      const userId = document.getElementById("get-account-userid").value;
+      if (!currentUserId) {
+        displayError("get-account-result", new Error("Please log in first"));
+        return;
+      }
+      
       try {
-        const response = await fetch(`${BASE_URL}/accounts/${userId}`);
-        const data = await response.json();
-        document.getElementById("get-account-result").textContent = JSON.stringify(data, null, 2);
+        const data = await apiRequest(`${BASE_URL}/accounts/${currentUserId}`);
+        const resultElement = document.getElementById("get-account-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
       } catch (error) {
-        document.getElementById("get-account-result").textContent = error;
+        displayError("get-account-result", error);
       }
     }
 
-    // Leaderboard endpoint
+    // Get user's trades
+    async function getMyTrades() {
+      if (!currentUserId) {
+        displayError("trades-result", new Error("Please log in first"));
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${BASE_URL}/trades/my`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': currentUserId.toString()
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to get trades');
+        }
+
+        const data = await response.json();
+        const resultElement = document.getElementById("trades-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+      } catch (error) {
+        displayError("trades-result", error);
+      }
+    }
+
+    // Get leaderboard
     async function getLeaderboard() {
       try {
-        const response = await fetch(`${BASE_URL}/leaderboard/`);
-        const data = await response.json();
-        document.getElementById("leaderboard-result").textContent = JSON.stringify(data, null, 2);
+        const data = await apiRequest(`${BASE_URL}/leaderboard`);
+        const resultElement = document.getElementById("leaderboard-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
       } catch (error) {
-        document.getElementById("leaderboard-result").textContent = error;
+        displayError("leaderboard-result", error);
       }
     }
 
-    // Orderbook endpoint
-    async function getOrderbook() {
-      const symbol = document.getElementById("orderbook-symbol").value;
-      try {
-        const response = await fetch(`${BASE_URL}/orderbook/?symbol=${symbol}`);
-        const data = await response.json();
-        document.getElementById("buy-orders-result").textContent = JSON.stringify(data.buy_orders, null, 2);
-        document.getElementById("sell-orders-result").textContent = JSON.stringify(data.sell_orders, null, 2);
-      } catch (error) {
-        document.getElementById("buy-orders-result").textContent = error;
-        document.getElementById("sell-orders-result").textContent = error;
-      }
-    }
-
-    // Place order endpoint
+    // Place a new order
     async function placeOrder() {
-      const userId = document.getElementById("order-userid").value;
+      if (!currentUserId) {
+        displayError("order-result", new Error("Please log in first"));
+        return;
+      }
+      
       const symbol = document.getElementById("order-symbol").value;
       const side = document.getElementById("order-side").value;
-      const quantity = parseFloat(document.getElementById("order-quantity").value);
-      const orderType = document.getElementById("order-type").value;
+      const type = document.getElementById("order-type").value;
+      const quantity = document.getElementById("order-quantity").value;
       const limitPrice = document.getElementById("order-limit-price").value;
       
-      const payload = { user_id: parseInt(userId), symbol, side, quantity, order_type: orderType };
-      if (orderType === "limit" && limitPrice) {
-        payload.limit_price = parseFloat(limitPrice);
+      if (!symbol || !side || !type || !quantity) {
+        displayError("order-result", new Error("Please fill in all required fields"));
+        return;
+      }
+
+      if (type === 'limit' && !limitPrice) {
+        displayError("order-result", new Error("Limit price is required for limit orders"));
+        return;
       }
       
       try {
-        const response = await fetch(`${BASE_URL}/orders/`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        const data = await response.json();
-        document.getElementById("order-result").textContent = JSON.stringify(data, null, 2);
-      } catch (error) {
-        document.getElementById("order-result").textContent = error;
-      }
-    }
+        // Get current market price for validation
+        const currentPrice = await getCurrentPrice(symbol);
+        
+        const orderData = {
+          user_id: currentUserId,
+          symbol: symbol,
+          side: side,
+          order_type: type,
+          quantity: parseFloat(quantity)
+        };
 
-    // Trades endpoint
-    async function getTrades() {
-      const symbol = document.getElementById("trades-symbol").value;
-      try {
-        const response = await fetch(`${BASE_URL}/trades/?symbol=${symbol}`);
-        const data = await response.json();
-        document.getElementById("trades-result").textContent = JSON.stringify(data, null, 2);
-      } catch (error) {
-        document.getElementById("trades-result").textContent = error;
-      }
-    }
-
-    // Create admin account endpoint
-    async function createAdminAccount() {
-      const userId = document.getElementById("admin-account-userid").value;
-      const password = document.getElementById("admin-account-password").value;
-      const adminKey = document.getElementById("admin-account-admin-key").value;
-      try {
-        const response = await fetch(`${BASE_URL}/admin/accounts/create`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-admin-api-key": adminKey
-          },
-          body: JSON.stringify({ user_id: parseInt(userId), password })
-        });
-        const data = await response.json();
-        document.getElementById("admin-account-result").textContent = JSON.stringify(data, null, 2);
-      } catch (error) {
-        document.getElementById("admin-account-result").textContent = error;
-      }
-    }
-
-    // Cancel single order endpoint
-    async function cancelOrder() {
-      const userId = document.getElementById("cancel-userid").value;
-      const orderId = document.getElementById("cancel-orderid").value;
-      try {
-        const response = await fetch(`${BASE_URL}/orders/cancel?order_id=${orderId}&user_id=${userId}`, {
-          method: "DELETE"
-        });
-        const data = await response.json();
-        document.getElementById("cancel-order-result").textContent = JSON.stringify(data, null, 2);
-        // Refresh the open orders list after cancellation
-        loadOpenOrders();
-      } catch (error) {
-        document.getElementById("cancel-order-result").textContent = error;
-      }
-    }
-
-    // Cancel all orders endpoint: get all pending orders for the user and cancel them one by one
-    async function cancelAllOrders() {
-      const userId = document.getElementById("cancel-userid").value;
-      try {
-        const pendingResponse = await fetch(`${BASE_URL}/orders/pending?user_id=${userId}`);
-        const orders = await pendingResponse.json();
-        let messages = [];
-        for (const order of orders) {
-          const delResponse = await fetch(`${BASE_URL}/orders/cancel?order_id=${order.order_id}&user_id=${userId}`, {
-            method: "DELETE"
-          });
-          const delResult = await delResponse.json();
-          messages.push(delResult.message);
+        // Add limit price only for limit orders
+        if (type === 'limit') {
+          const parsedLimitPrice = parseFloat(limitPrice);
+          if (isNaN(parsedLimitPrice) || parsedLimitPrice <= 0) {
+            throw new Error("Invalid limit price. Please enter a positive number.");
+          }
+          
+          // For buy orders, limit price should be less than current market price
+          // For sell orders, limit price should be greater than current market price
+          if (side === 'buy' && parsedLimitPrice >= currentPrice) {
+            throw new Error(`Limit price (${parsedLimitPrice}) must be less than current market price (${currentPrice}) for buy orders`);
+          }
+          if (side === 'sell' && parsedLimitPrice <= currentPrice) {
+            throw new Error(`Limit price (${parsedLimitPrice}) must be greater than current market price (${currentPrice}) for sell orders`);
+          }
+          
+          orderData.limit_price = parsedLimitPrice;
         }
-        document.getElementById("cancel-order-result").textContent = messages.join("\n");
-        // Refresh the open orders list after cancellation
-        loadOpenOrders();
+
+        console.log("Placing order with data:", orderData); // Debug log
+
+        const response = await fetch(`${BASE_URL}/orders`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': currentUserId.toString()
+          },
+          body: JSON.stringify(orderData)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Order placement failed');
+        }
+
+        const data = await response.json();
+        const resultElement = document.getElementById("order-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+        
+        // Refresh open orders list
+        getOpenOrders();
       } catch (error) {
-        document.getElementById("cancel-order-result").textContent = error;
+        displayError("order-result", error);
+      }
+    }
+
+    // Helper function to get current market price
+    async function getCurrentPrice(symbol) {
+      try {
+        const response = await fetch(`${BASE_URL}/stocks`);
+        if (!response.ok) {
+          throw new Error('Failed to get current price');
+        }
+        const data = await response.json();
+        // Find the stock with matching symbol
+        const stock = data.find(s => s.symbol === symbol);
+        if (!stock) {
+          throw new Error(`Stock ${symbol} not found`);
+        }
+        return stock.price;
+      } catch (error) {
+        console.error('Error getting current price:', error);
+        throw new Error('Failed to get current market price');
+      }
+    }
+
+    // Cancel an order
+    async function cancelOrder() {
+      if (!currentUserId) {
+        displayError("cancel-result", new Error("Please log in first"));
+        return;
+      }
+      
+      const orderId = document.getElementById("cancel-orderid").value;
+      
+      try {
+        const response = await fetch(`${BASE_URL}/orders/${orderId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Order cancellation failed');
+        }
+
+        const data = await response.json();
+        const resultElement = document.getElementById("cancel-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+        
+        // Refresh orders list
+        getOrders();
+      } catch (error) {
+        displayError("cancel-result", error);
+      }
+    }
+
+    // Get market data
+    async function getStocks() {
+      try {
+        const data = await apiRequest(`${BASE_URL}/stocks`);
+        const resultElement = document.getElementById("stocks-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+      } catch (error) {
+        displayError("stocks-result", error);
+      }
+    }
+
+    // Get specific stock data
+    async function getStock(symbol) {
+      try {
+        const data = await apiRequest(`${BASE_URL}/stocks/${symbol}`);
+        const resultElement = document.getElementById("stock-result");
+        resultElement.textContent = JSON.stringify(data, null, 2);
+        resultElement.style.color = 'inherit';
+      } catch (error) {
+        displayError("stock-result", error);
+      }
+    }
+
+    // Get open orders for current user
+    async function getOpenOrders() {
+      if (!currentUserId) {
+        displayError("open-orders-result", new Error("Please log in first"));
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${BASE_URL}/orders/pending?user_id=${currentUserId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': currentUserId.toString()
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to get open orders');
+        }
+
+        const data = await response.json();
+        const resultElement = document.getElementById("open-orders-result");
+        
+        // Add Cancel All Orders button if there are orders
+        if (data.length > 0) {
+          const cancelAllButton = document.createElement('button');
+          cancelAllButton.className = 'admin-button admin-button-warn';
+          cancelAllButton.textContent = 'Cancel All Orders';
+          cancelAllButton.onclick = () => {
+            if (confirm('Are you sure you want to cancel all your open orders?')) {
+              cancelAllOrdersForUser(currentUserId);
+            }
+          };
+          cancelAllButton.style.marginBottom = '10px';
+          resultElement.innerHTML = '';
+          resultElement.appendChild(cancelAllButton);
+        }
+        
+        // Create a table to display orders with cancel buttons
+        let html = '<table style="width: 100%; border-collapse: collapse; margin-top: 10px;">';
+        html += '<tr><th>Order ID</th><th>Symbol</th><th>Side</th><th>Type</th><th>Quantity</th><th>Limit Price</th><th>Action</th></tr>';
+        
+        data.forEach(order => {
+          html += `<tr>
+            <td>${order.order_id}</td>
+            <td>${order.symbol}</td>
+            <td>${order.side}</td>
+            <td>${order.order_type}</td>
+            <td>${order.quantity}</td>
+            <td>${order.limit_price || 'N/A'}</td>
+            <td>
+              <button class="admin-button admin-button-warn" onclick="cancelSpecificOrder('${order.order_id}')">
+                Cancel
+              </button>
+            </td>
+          </tr>`;
+        });
+        
+        html += '</table>';
+        resultElement.innerHTML += html;
+        resultElement.style.color = 'inherit';
+      } catch (error) {
+        displayError("open-orders-result", error);
+      }
+    }
+
+    // Cancel a specific order
+    async function cancelSpecificOrder(orderId) {
+      if (!currentUserId) {
+        displayError("open-orders-result", new Error("Please log in first"));
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${BASE_URL}/orders/cancel?order_id=${orderId}&user_id=${currentUserId}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': currentUserId.toString()
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Order cancellation failed');
+        }
+
+        const data = await response.json();
+        alert(data.message || 'Order cancelled successfully');
+        
+        // Refresh the open orders list
+        getOpenOrders();
+      } catch (error) {
+        alert(error.message || 'Failed to cancel order');
       }
     }
 
     // Load all open orders for the user
     async function loadOpenOrders() {
       const userId = document.getElementById("cancel-userid").value;
+      if (!userId) {
+        displayError("open-orders-result", new Error("Please enter a User ID"));
+        return;
+      }
+      
       try {
-        const response = await fetch(`${BASE_URL}/orders/pending?user_id=${userId}`);
+        const response = await fetch(`${BASE_URL}/orders/pending?user_id=${userId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': userId.toString()
+          }
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || 'Failed to get open orders');
+        }
+
         const orders = await response.json();
-        document.getElementById("open-orders-result").textContent = JSON.stringify(orders, null, 2);
+        const resultElement = document.getElementById("open-orders-result");
+        resultElement.textContent = JSON.stringify(orders, null, 2);
+        resultElement.style.color = 'inherit';
       } catch (error) {
-        document.getElementById("open-orders-result").textContent = error;
+        displayError("open-orders-result", error);
+      }
+    }
+
+    // Get orderbook data
+    async function getOrderbook() {
+      try {
+        const data = await apiRequest(`${BASE_URL}/orderbook`);
+        console.log('Orderbook data:', data); // Debug log
+        
+        // Check if data has buy_orders and sell_orders properties
+        if (data && data.buy_orders && data.sell_orders) {
+          // Display buy orders
+          const buyOrdersElement = document.getElementById("buy-orders-result");
+          buyOrdersElement.textContent = JSON.stringify(data.buy_orders, null, 2);
+          buyOrdersElement.style.color = 'inherit';
+          
+          // Display sell orders
+          const sellOrdersElement = document.getElementById("sell-orders-result");
+          sellOrdersElement.textContent = JSON.stringify(data.sell_orders, null, 2);
+          sellOrdersElement.style.color = 'inherit';
+        } else {
+          // If the data structure is different, display the raw data
+          const buyOrdersElement = document.getElementById("buy-orders-result");
+          buyOrdersElement.textContent = JSON.stringify(data, null, 2);
+          buyOrdersElement.style.color = 'inherit';
+          
+          const sellOrdersElement = document.getElementById("sell-orders-result");
+          sellOrdersElement.textContent = "No sell orders available";
+          sellOrdersElement.style.color = 'inherit';
+        }
+      } catch (error) {
+        displayError("buy-orders-result", error);
+        displayError("sell-orders-result", error);
+      }
+    }
+
+    // Cancel all orders for a specific user
+    async function cancelAllOrdersForUser(userId) {
+      try {
+        const pendingResponse = await fetch(`${BASE_URL}/orders/pending?user_id=${userId}`, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-User-ID': userId.toString()
+          }
+        });
+        
+        if (!pendingResponse.ok) {
+          throw new Error('Failed to get pending orders');
+        }
+        
+        const orders = await pendingResponse.json();
+        let messages = [];
+        
+        for (const order of orders) {
+          const delResponse = await fetch(`${BASE_URL}/orders/cancel?order_id=${order.order_id}&user_id=${userId}`, {
+            method: "DELETE",
+            headers: {
+              'Content-Type': 'application/json',
+              'X-User-ID': userId.toString()
+            }
+          });
+          
+          if (!delResponse.ok) {
+            const errorData = await delResponse.json();
+            messages.push(`Failed to cancel order ${order.order_id}: ${errorData.detail || 'Unknown error'}`);
+          } else {
+            const delResult = await delResponse.json();
+            messages.push(delResult.message);
+          }
+        }
+        
+        alert(messages.join("\n"));
+        // Refresh the open orders list after cancellation
+        getOpenOrders();
+      } catch (error) {
+        alert(error.message || 'Failed to cancel orders');
       }
     }
   </script>
