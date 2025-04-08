@@ -108,12 +108,5 @@ For developers or advanced users, the following API endpoints are available:
 4. Place your first trade in the "Place Order" section
 5. Track your performance and compete on the leaderboard
 
-## Trading Strategies
-
-- **Market Making**: Place limit buy orders below market price and limit sell orders above market price to profit from the spread
-- **Trend Following**: Analyze price charts to identify trends and trade in the direction of the trend
-- **Volatility Trading**: Look for stocks with high volatility for potential larger price swings
-- **Value Investing**: Buy stocks you believe are undervalued and hold for longer periods
-
 Happy trading!
 
