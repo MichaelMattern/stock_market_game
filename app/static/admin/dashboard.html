@@ -39,25 +39,25 @@
                 <div class="admin-stat-card">
                     <h3 class="admin-stat-title">Total Users</h3>
                     <div class="admin-stat-value" id="total-users">-</div>
-                    <div class="admin-stat-change positive" id="users-change">+0% from yesterday</div>
+                    <div class="admin-stat-change" id="users-change">Data unavailable</div>
                 </div>
                 
                 <div class="admin-stat-card">
                     <h3 class="admin-stat-title">Total Trades</h3>
                     <div class="admin-stat-value" id="total-trades">-</div>
-                    <div class="admin-stat-change positive" id="trades-change">+0% from yesterday</div>
+                    <div class="admin-stat-change" id="trades-change">Data unavailable</div>
                 </div>
                 
                 <div class="admin-stat-card">
                     <h3 class="admin-stat-title">Pending Orders</h3>
                     <div class="admin-stat-value" id="pending-orders">-</div>
-                    <div class="admin-stat-change" id="orders-change">0% change</div>
+                    <div class="admin-stat-change" id="orders-change">Data unavailable</div>
                 </div>
                 
                 <div class="admin-stat-card">
                     <h3 class="admin-stat-title">Trading Volume</h3>
                     <div class="admin-stat-value" id="trading-volume">-</div>
-                    <div class="admin-stat-change" id="volume-change">0% change</div>
+                    <div class="admin-stat-change" id="volume-change">Data unavailable</div>
                 </div>
             </div>
             
@@ -189,8 +189,8 @@
                 // Update the UI with real data
                 // Users
                 if (userStats && !userStats.error) {
-                    document.getElementById('total-users').textContent = formatNumber(userStats.total || userStats.total_accounts || userStats.regular_accounts || 0);
-                    document.getElementById('users-change').textContent = `${userStats.change || 0}% change`;
+                    document.getElementById('total-users').textContent = formatNumber(userStats.total_accounts || 0);
+                    document.getElementById('users-change').textContent = '';
                 } else {
                     document.getElementById('total-users').textContent = 'N/A';
                     document.getElementById('users-change').textContent = 'Data unavailable';
@@ -198,10 +198,10 @@
                 
                 // Trades
                 if (tradeStats && !tradeStats.error) {
-                    document.getElementById('total-trades').textContent = formatNumber(tradeStats.total || tradeStats.total_trades || 0);
-                    document.getElementById('trades-change').textContent = `${tradeStats.change || 0}% change`;
-                    document.getElementById('trading-volume').textContent = formatCurrency(tradeStats.volume || tradeStats.total_value || 0);
-                    document.getElementById('volume-change').textContent = `${tradeStats.volumeChange || 0}% change`;
+                    document.getElementById('total-trades').textContent = formatNumber(tradeStats.total_trades || 0);
+                    document.getElementById('trading-volume').textContent = formatCurrency(tradeStats.total_value || 0);
+                    document.getElementById('trades-change').textContent = '';
+                    document.getElementById('volume-change').textContent = '';
                 } else {
                     document.getElementById('total-trades').textContent = 'N/A';
                     document.getElementById('trades-change').textContent = 'Data unavailable';
@@ -211,27 +211,24 @@
                 
                 // Orders
                 if (orderStats && !orderStats.error) {
-                    document.getElementById('pending-orders').textContent = formatNumber(orderStats.pending || orderStats.total_pending_orders || 0);
-                    document.getElementById('orders-change').textContent = `${orderStats.change || 0}% change`;
+                    document.getElementById('pending-orders').textContent = formatNumber(orderStats.total_pending_orders || 0);
+                    document.getElementById('orders-change').textContent = '';
                 } else {
                     document.getElementById('pending-orders').textContent = 'N/A';
                     document.getElementById('orders-change').textContent = 'Data unavailable';
                 }
-                
-                // Set colors based on change direction
-                const changeElements = document.querySelectorAll('.admin-stat-change');
-                changeElements.forEach(el => {
-                    if (el.textContent.includes('-')) {
-                        el.classList.add('negative');
-                        el.classList.remove('positive');
-                    } else {
-                        el.classList.add('positive');
-                        el.classList.remove('negative');
-                    }
-                });
             } catch (error) {
                 console.error('Error loading stats:', error);
                 showNotification('Error loading statistics', 'error');
+                // Explicitly set card text to indicate error on API failure
+                document.getElementById('total-users').textContent = 'N/A';
+                document.getElementById('users-change').textContent = 'Error';
+                document.getElementById('total-trades').textContent = 'N/A';
+                document.getElementById('trades-change').textContent = 'Error';
+                document.getElementById('trading-volume').textContent = 'N/A';
+                document.getElementById('volume-change').textContent = 'Error';
+                document.getElementById('pending-orders').textContent = 'N/A';
+                document.getElementById('orders-change').textContent = 'Error';
             }
         }
         

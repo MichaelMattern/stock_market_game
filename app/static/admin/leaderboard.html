@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="admin-styles.css">
     <style>
+        /* Reverted styles */
         .medal {
             display: inline-block;
             width: 30px;
@@ -19,53 +20,53 @@
             font-weight: bold;
             margin-right: 10px;
         }
-        
+
         .medal-gold {
             background-color: #ffd700;
         }
-        
+
         .medal-silver {
             background-color: #c0c0c0;
         }
-        
+
         .medal-bronze {
             background-color: #cd7f32;
         }
-        
+
         .medal-rank {
             background-color: #e0e0e0;
             color: #333;
         }
-        
+
         .profit {
             color: #4caf50;
         }
-        
+
         .loss {
             color: #f44336;
         }
-        
+
         .leaderboard-table tr:nth-child(1) td {
             background-color: rgba(255, 215, 0, 0.1);
         }
-        
+
         .leaderboard-table tr:nth-child(2) td {
             background-color: rgba(192, 192, 192, 0.1);
         }
-        
+
         .leaderboard-table tr:nth-child(3) td {
             background-color: rgba(205, 127, 50, 0.1);
         }
-        
+
         .user-detail-row {
             background-color: #f9f9f9 !important;
             display: none;
         }
-        
+
         .user-detail-content {
             padding: 20px;
         }
-        
+
         .position-list {
             margin-top: 10px;
             max-height: 200px;
@@ -101,7 +102,7 @@
                 </div>
             </div>
             
-            <!-- Leaderboard Stats -->
+            <!-- Leaderboard Stats (Re-added) -->
             <div class="admin-card">
                 <div class="admin-card-header">
                     <h2 class="admin-card-title">Leaderboard Statistics</h2>
@@ -127,7 +128,7 @@
                 </div>
             </div>
             
-            <!-- Leaderboard Table -->
+            <!-- Leaderboard Table (Reverted) -->
             <div class="admin-card">
                 <div class="admin-card-header">
                     <h2 class="admin-card-title">User Rankings</h2>
@@ -162,16 +163,16 @@
     
     <script src="admin-scripts.js"></script>
     <script>
-        // Variables
+        // Variables (Reverted)
         let leaderboardData = [];
         let showDetails = false;
         
-        // DOM Elements
+        // DOM Elements (Reverted)
         const leaderboardTable = document.getElementById('leaderboard-table');
         const leaderboardBody = document.getElementById('leaderboard-data');
         const toggleDetailsCheckbox = document.getElementById('toggle-details');
         
-        // Initialize page
+        // Initialize page (Reverted)
         document.addEventListener('DOMContentLoaded', () => {
             // Set admin name
             const adminId = localStorage.getItem('adminId');
@@ -187,7 +188,7 @@
             toggleDetailsCheckbox.addEventListener('change', toggleUserDetails);
         });
         
-        // Load leaderboard data
+        // Load leaderboard data (Reverted)
         async function loadLeaderboard() {
             try {
                 // Show loading state
@@ -211,7 +212,7 @@
             }
         }
         
-        // Display leaderboard data
+        // Display leaderboard data (Reverted)
         function displayLeaderboard() {
             // Clear table body
             leaderboardBody.innerHTML = '';
@@ -277,7 +278,7 @@
             });
         }
         
-        // Create user details row
+        // Create user details row (Reverted)
         function createUserDetailsRow(user, afterRow) {
             // Create a detail row
             const detailRow = document.createElement('tr');
@@ -308,7 +309,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                ${Object.entries(user.open_positions).map(([symbol, quantity]) => {
+                                ${Object.entries(user.open_positions || {}).map(([symbol, quantity]) => {
                                     const stockData = getStockData(symbol);
                                     const currentPrice = stockData ? stockData.price : 0;
                                     const value = quantity * currentPrice;
@@ -333,7 +334,7 @@
                     <div class="admin-card-header">
                         <h3 class="admin-card-title">User ${user.user_id} Details</h3>
                     </div>
-                    
+
                     <div class="admin-form-grid">
                         <div class="admin-form-field">
                             <label class="admin-label">Cash Balance:</label>
@@ -352,9 +353,9 @@
                             <div><strong>${formatCurrency(user.networth)}</strong></div>
                         </div>
                     </div>
-                    
+
                     ${positionsHtml}
-                    
+
                     <div style="margin-top: 15px;">
                         <a href="users.html?id=${user.user_id}" class="admin-button admin-button-primary">
                             <i class="fas fa-user"></i> View Full Profile
@@ -375,7 +376,7 @@
             afterRow.parentNode.insertBefore(detailRow, afterRow.nextSibling);
         }
         
-        // Toggle all user details
+        // Toggle all user details (Reverted)
         function toggleUserDetails() {
             showDetails = toggleDetailsCheckbox.checked;
             
@@ -401,7 +402,7 @@
             }
         }
         
-        // Toggle details for a single user
+        // Toggle details for a single user (Reverted)
         function toggleSingleUserDetails(userId) {
             const detailRow = document.querySelector(`tr[data-user-id="${userId}"][data-type="detail"]`);
             
@@ -419,7 +420,7 @@
             }
         }
         
-        // Update leaderboard statistics
+        // Update leaderboard statistics (Reverted)
         function updateLeaderboardStats(data) {
             // Total users
             document.getElementById('total-users').textContent = formatNumber(data.length);
@@ -440,7 +441,7 @@
             plElement.className = totalPL >= 0 ? 'admin-stat-value profit' : 'admin-stat-value loss';
         }
         
-        // Helper function to get stock data (mock implementation)
+        // Helper function to get stock data (mock implementation - Reverted)
         function getStockData(symbol) {
             // In a real implementation, this would fetch current stock data
             // For now, return a default price

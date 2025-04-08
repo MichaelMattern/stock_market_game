@@ -9,6 +9,9 @@ from app.models import StockHistory
 from sqlalchemy.orm import Session
 from datetime import datetime
 
+# Define the maximum allowed stock price
+MAX_STOCK_PRICE = 6e2  # For example, 700
+
 # Maximum number of historical data points to keep per timeframe
 MAX_HISTORY_POINTS = 1000
 
@@ -19,11 +22,11 @@ def store_historical_data(session: Session, symbol: str, stock_data: dict, timef
     try:
         print(f"Storing historical data: {symbol}, timeframe: {timeframe}, price: {stock_data['price']}")
         
-        # Convert numpy types to standard Python types
-        price = float(stock_data["price"])
-        volume = float(stock_data["volume"])
-        volatility = float(stock_data["volatility"])
-        liquidity = float(stock_data.get("liquidity", 0))
+        # Convert numpy types to standard Python types and round floats
+        price = round(float(stock_data["price"]), 2)
+        volume = round(float(stock_data["volume"]), 2)
+        volatility = round(float(stock_data["volatility"]), 2)
+        liquidity = round(float(stock_data.get("liquidity", 0)), 2)
         
         # Convert Unix timestamp to datetime
         timestamp = datetime.fromtimestamp(stock_data["timestamp"])
@@ -47,14 +50,21 @@ def store_historical_data(session: Session, symbol: str, stock_data: dict, timef
 def run_simulation(symbol, params, dt=1/252, sleep_time=5, gamma=1e-4):
     """
     Simulates market dynamics for a given stock symbol, incorporating order flow feedback.
-    Now also stores historical data in both Redis and the database.
+    Uses a mean-reverting model for normal operation, and enforces a hard cap
+    with a crash scenario when the price exceeds MAX_STOCK_PRICE.
     """
-    # Initial state
+    # Initial state parameters
     price = params["S0"]
     volatility = params["sigma0"]
     mu = params["mu"]
     base_volume = params["base_volume"]
     base_liquidity = params["base_liquidity"]
+    
+    # Use the log-price for a mean-reverting formulation
+    log_price = np.log(price)
+    # Mean-reversion parameters for the log-price:
+    kappa_price = 0.1           # speed of reversion
+    theta_price = np.log(params["S0"])  # target log-price (can be adjusted for desired equilibrium)
 
     while True:
         # --- Incorporate Order Flow Feedback ---
@@ -67,70 +77,80 @@ def run_simulation(symbol, params, dt=1/252, sleep_time=5, gamma=1e-4):
         # Reset imbalance after reading
         redis_client.set(imbalance_key, 0)
         effective_mu = mu + gamma * imbalance
-
+        
         # --- Update Volatility (Ornstein–Uhlenbeck process) ---
         kappa = 0.1
         theta = params["sigma0"]
         xi = 0.05
         epsilon_vol = np.random.normal(0, 1)
         volatility = max(volatility + kappa * (theta - volatility) * dt + xi * np.sqrt(dt) * epsilon_vol, 0.001)
-
-        # --- Update Price Using GBM ---
+        
+        # --- Update the Log-Price with a Mean-Reverting Model ---
+        # Here the drift is influenced by both the effective_mu and the mean reversion term.
         epsilon_price = np.random.normal(0, 1)
-        price = price * np.exp((effective_mu - 0.5 * volatility ** 2) * dt + volatility * np.sqrt(dt) * epsilon_price)
+        log_price += kappa_price * (theta_price - log_price) * dt + volatility * np.sqrt(dt) * epsilon_price
+        price = np.exp(log_price)
+
+        # --- Enforce a Hard Cap: Crash Scenario if Price is Too High ---
+        if price > MAX_STOCK_PRICE:
+            print(f"Price exceeded hard cap ({MAX_STOCK_PRICE}). Triggering market correction...")
+            # For example, simulate a crash by reducing the price by 50%
+            price = price * 0.5
+            # Rebase the log-price to the new price
+            log_price = np.log(price)
 
         # --- Simulate Volume ---
         sigma_volume = 0.1 * base_volume + 0.5 * volatility * base_volume
         volume = int(np.random.lognormal(mean=np.log(base_volume), sigma=sigma_volume / base_volume))
-
+        
         # --- Simulate Liquidity ---
         liquidity = base_liquidity * (base_volume / volume) * (params["sigma0"] / volatility)
-
+        
         # --- Build Market Data ---
         current_time = int(time.time())
         stock_data = {
             "symbol": symbol,
-            "price": price,
-            "volatility": volatility,
-            "volume": volume,
-            "liquidity": liquidity,
+            "price": round(price, 2),
+            "volatility": round(volatility, 2),
+            "volume": round(volume, 2),
+            "liquidity": round(liquidity, 2),
             "timestamp": current_time
         }
         
-        # Store the current stock data in Redis under key "HACK"
+        # Store the current stock data in Redis under the symbol key
         redis_client.set(symbol, json.dumps(stock_data))
         
-        # Store historical data point in Redis and database
+        # Create a JSON representation for storage
         stock_data_json = json.dumps(stock_data)
         
         # Create a database session
         session = SessionLocal()
         try:
-            # Add to historical data for all timeframes
-            # 1-minute data
-            redis_client.zadd(f"history:1m:{symbol}", {stock_data_json: current_time})
-            redis_client.zremrangebyrank(f"history:1m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
-            store_historical_data(session, symbol, stock_data, "1m")
+            # Store 1-minute historical data if the time aligns
+            if current_time % 60 < sleep_time: # Check for 1-minute interval boundary
+                redis_client.zadd(f"history:1m:{symbol}", {stock_data_json: current_time})
+                redis_client.zremrangebyrank(f"history:1m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
+                store_historical_data(session, symbol, stock_data, "1m")
             
-            # Store in 5-minute history if it aligns with 5-minute intervals
+            # Store 5-minute historical data if the time aligns
             if current_time % 300 < sleep_time:
                 redis_client.zadd(f"history:5m:{symbol}", {stock_data_json: current_time})
                 redis_client.zremrangebyrank(f"history:5m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
                 store_historical_data(session, symbol, stock_data, "5m")
             
-            # Store in 15-minute history if it aligns with 15-minute intervals
+            # Store 15-minute historical data if the time aligns
             if current_time % 900 < sleep_time:
                 redis_client.zadd(f"history:15m:{symbol}", {stock_data_json: current_time})
                 redis_client.zremrangebyrank(f"history:15m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
                 store_historical_data(session, symbol, stock_data, "15m")
             
-            # Store in 30-minute history if it aligns with 30-minute intervals
+            # Store 30-minute historical data if the time aligns
             if current_time % 1800 < sleep_time:
                 redis_client.zadd(f"history:30m:{symbol}", {stock_data_json: current_time})
                 redis_client.zremrangebyrank(f"history:30m:{symbol}", 0, -MAX_HISTORY_POINTS-1)
                 store_historical_data(session, symbol, stock_data, "30m")
             
-            # Store in 1-hour history if it aligns with hourly intervals
+            # Store 1-hour historical data if the time aligns
             if current_time % 3600 < sleep_time:
                 redis_client.zadd(f"history:1h:{symbol}", {stock_data_json: current_time})
                 redis_client.zremrangebyrank(f"history:1h:{symbol}", 0, -MAX_HISTORY_POINTS-1)

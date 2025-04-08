@@ -113,28 +113,36 @@ def process_order(order: dict) -> dict:
                 position = Position(user_id=order.get("user_id"), symbol=symbol, quantity=0)
                 session.add(position)
             
-            total_value = executed_price * quantity
+            # Round values before calculation and update
+            rounded_executed_price = round(executed_price, 2)
+            rounded_quantity = round(quantity, 2)
+            total_value = round(rounded_executed_price * rounded_quantity, 2)
+
             if side == "buy":
                 if account.cash < total_value:
                     raise Exception("Insufficient funds.")
                 account.cash -= total_value
-                position.quantity += quantity
+                # Round cash itself after update to ensure precision
+                account.cash = round(account.cash, 2)
+                position.quantity += rounded_quantity
             elif side == "sell":
-                if position.quantity < quantity:
+                if position.quantity < rounded_quantity: # Compare with rounded quantity
                     raise Exception("Insufficient shares to sell.")
                 account.cash += total_value
-                position.quantity -= quantity
+                # Round cash itself after update to ensure precision
+                account.cash = round(account.cash, 2)
+                position.quantity -= rounded_quantity
             else:
                 raise Exception("Invalid order side during account update.")
             
-            # Record the trade.
+            # Record the trade with rounded values.
             trade_record = Trade(
                 order_id=order_id,
                 user_id=order.get("user_id"),
                 symbol=symbol,
                 side=side,
-                quantity=quantity,
-                price=executed_price,
+                quantity=rounded_quantity, # Use rounded quantity
+                price=rounded_executed_price, # Use rounded price
                 timestamp=int(time.time())
             )
             session.add(trade_record)
@@ -149,14 +157,19 @@ def process_order(order: dict) -> dict:
         session = SessionLocal()
         try:
             from app.models import PendingOrder  # Already imported at the top if needed.
+            # Round values before saving pending order
+            rounded_quantity = round(quantity, 2)
+            # Ensure limit_price is not None before rounding
+            rounded_limit_price = round(limit_price, 2) if limit_price is not None else None
+
             pending = PendingOrder(
                 order_id=order_id,
                 user_id=order.get("user_id"),
                 symbol=symbol,
                 side=side,
-                quantity=quantity,
+                quantity=rounded_quantity, # Use rounded quantity
                 order_type=order_type,
-                limit_price=limit_price,
+                limit_price=rounded_limit_price, # Use rounded limit price
                 timestamp=int(time.time())
             )
             session.add(pending)

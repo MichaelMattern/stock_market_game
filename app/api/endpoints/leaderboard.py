@@ -23,7 +23,7 @@ def get_leaderboard():
         leaderboard = []
         for account in accounts:
             # Compute networth dynamically
-            networth = account.cash + account.profit_loss
+            networth = round((account.cash or 0) + (account.profit_loss or 0), 2)
             leaderboard.append({
                 "user_id": account.user_id,
                 "cash": account.cash,

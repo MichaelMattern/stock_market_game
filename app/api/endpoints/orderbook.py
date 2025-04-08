@@ -9,29 +9,6 @@ from app.models import PendingOrder
 
 router = APIRouter()
 
-def get_pending_orders(symbol: str, side: str):
-    session = SessionLocal()
-    try:
-        orders = session.query(PendingOrder).filter(
-            PendingOrder.symbol == symbol,
-            PendingOrder.side == side
-        ).all()
-        orders_list = []
-        for order in orders:
-            orders_list.append({
-                "order_id": order.order_id,
-                "user_id": order.user_id,
-                "symbol": order.symbol,
-                "side": order.side,
-                "quantity": order.quantity,
-                "order_type": order.order_type,
-                "limit_price": order.limit_price,
-                "timestamp": order.timestamp
-            })
-        return orders_list
-    finally:
-        session.close()
-
 @router.get("/")
 def get_orderbook(symbol: str = Query("HACK", description="Stock symbol (e.g., HACK)")):
     # Retrieve simulated orderbook from Redis.
@@ -43,25 +20,48 @@ def get_orderbook(symbol: str = Query("HACK", description="Stock symbol (e.g., H
         try:
             simulated_buy = json.loads(buy_data).get("orders", [])
         except Exception:
-            simulated_buy = []
+            simulated_buy = [] # Default to empty list on error
     if sell_data:
         try:
             simulated_sell = json.loads(sell_data).get("orders", [])
         except Exception:
-            simulated_sell = []
-    
-    # Retrieve pending orders from the database.
-    pending_buy = get_pending_orders(symbol.upper(), "buy")
-    pending_sell = get_pending_orders(symbol.upper(), "sell")
-    
-    # Merge simulated orders with pending orders.
-    merged_buy = simulated_buy + pending_buy
-    merged_sell = simulated_sell + pending_sell
+            simulated_sell = [] # Default to empty list on error
 
-    # Sort orders: For pending orders, use 'limit_price' if 'price' is not available.
-    merged_buy.sort(key=lambda x: x.get("price", x.get("limit_price", 0)), reverse=True)
-    merged_sell.sort(key=lambda x: x.get("price", x.get("limit_price", 0)))
-    
+    # Retrieve pending orders from the database and format them.
+    session = SessionLocal()
+    try:
+        pending_buy_db = session.query(PendingOrder).filter(
+            PendingOrder.symbol == symbol.upper(),
+            PendingOrder.side == "buy",
+            PendingOrder.order_type == "limit"
+        ).all()
+        pending_sell_db = session.query(PendingOrder).filter(
+            PendingOrder.symbol == symbol.upper(),
+            PendingOrder.side == "sell",
+            PendingOrder.order_type == "limit"
+        ).all()
+
+        # Transform pending orders to {price, volume} format
+        formatted_pending_buy = [
+            {"price": order.limit_price, "volume": order.quantity}
+            for order in pending_buy_db if order.limit_price is not None
+        ]
+        formatted_pending_sell = [
+            {"price": order.limit_price, "volume": order.quantity}
+            for order in pending_sell_db if order.limit_price is not None
+        ]
+    finally:
+        session.close()
+
+    # Merge simulated orders with formatted pending orders.
+    merged_buy = simulated_buy + formatted_pending_buy
+    merged_sell = simulated_sell + formatted_pending_sell
+
+    # Sort orders by price.
+    # All entries now consistently have a 'price' key.
+    merged_buy.sort(key=lambda x: x["price"], reverse=True)
+    merged_sell.sort(key=lambda x: x["price"])
+
     return {
         "buy_orders": merged_buy,
         "sell_orders": merged_sell,
