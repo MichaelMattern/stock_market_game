@@ -58,9 +58,7 @@ class TradeData(BaseModel):
 
 class LeaderboardEntry(BaseModel):
     user_id: int
-    cash: float
-    profit_loss: float
-    networth: float
+    networth: float     # Total net worth (cash + market_value)
 
     class Config:
         from_attributes = True
@@ -74,6 +72,16 @@ class PendingOrderResponse(BaseModel):
     order_type: str
     limit_price: float = None
     timestamp: int
+
+    class Config:
+        from_attributes = True
+
+class AdminLeaderboardEntry(BaseModel):
+    user_id: int
+    cash: float
+    profit_loss: float  # Realized P/L
+    market_value: float # Current market value of open positions
+    networth: float     # Total net worth (cash + market_value)
 
     class Config:
         from_attributes = True

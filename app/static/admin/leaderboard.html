@@ -194,8 +194,8 @@
                 // Show loading state
                 leaderboardBody.innerHTML = '<tr><td colspan="7" style="text-align: center;">Loading leaderboard data...</td></tr>';
                 
-                // Fetch leaderboard data
-                const data = await fetchWithAuth('/leaderboard/');
+                // Fetch leaderboard data from the new ADMIN endpoint
+                const data = await fetchWithAuth('/leaderboard/admin'); // Changed endpoint
                 
                 // Store data
                 leaderboardData = data;
@@ -234,9 +234,6 @@
                 // Profit/loss styling
                 const plClass = user.profit_loss >= 0 ? 'profit' : 'loss';
                 
-                // Market value calculation
-                const marketValue = user.networth - user.cash;
-                
                 // Rank medal or number
                 let rankDisplay;
                 if (rank === 1) {
@@ -254,7 +251,7 @@
                     <td>User ${user.user_id}</td>
                     <td>${formatCurrency(user.cash)}</td>
                     <td class="${plClass}">${formatCurrency(user.profit_loss)}</td>
-                    <td>${formatCurrency(marketValue)}</td>
+                    <td>${formatCurrency(user.market_value)}</td>
                     <td><strong>${formatCurrency(user.networth)}</strong></td>
                     <td>
                         <button class="admin-button admin-button-primary view-details-btn" data-user-id="${user.user_id}">
@@ -346,7 +343,7 @@
                         </div>
                         <div class="admin-form-field">
                             <label class="admin-label">Market Value:</label>
-                            <div>${formatCurrency(user.networth - user.cash)}</div>
+                            <div>${formatCurrency(user.market_value)}</div>
                         </div>
                         <div class="admin-form-field">
                             <label class="admin-label">Net Worth:</label>
